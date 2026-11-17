@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Analog Tools · 模拟人生工具箱</title>
+<meta name="description" content="为模拟与射频电路学习者准备的纯前端小工具合集，所有计算均在浏览器本地完成。">
+<script>
+/* 尽早应用已保存的主题，避免页面闪烁 */
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* 忽略隐私模式下的异常 */ }
+})();
+</script>
+<link rel="icon" href="./assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+
+<!-- 背景装饰：正弦波与电路走线，颜色跟随主题变量 -->
+<svg class="bg-art" aria-hidden="true" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+  <path d="M-20 180 Q 90 80, 200 180 T 420 180 T 640 180 T 860 180 T 1080 180 T 1300 180 T 1520 180" fill="none"/>
+  <path d="M-20 230 Q 90 150, 200 230 T 420 230 T 640 230 T 860 230 T 1080 230 T 1300 230 T 1520 230" fill="none"/>
+  <path d="M-20 720 Q 120 620, 260 720 T 540 720 T 820 720 T 1100 720 T 1380 720 T 1660 720" fill="none"/>
+  <path d="M960 600 h140 v-90 h120 v-70" fill="none"/>
+  <circle cx="960" cy="600" r="5" class="dot"/>
+  <circle cx="1220" cy="440" r="5" class="dot"/>
+  <path d="M160 560 h110 v80 h90" fill="none"/>
+  <circle cx="160" cy="560" r="5" class="dot"/>
+  <circle cx="360" cy="640" r="5" class="dot"/>
+</svg>
+
+<!-- 图标定义 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-wave" viewBox="0 0 24 24">
+    <path d="M2 12 Q 5.5 4, 9 12 T 16 12 T 23 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-divider" viewBox="0 0 24 24">
+    <path d="M12 2 v5 M12 17 v5 M12 7 l-4 2.5 8 5 -8 5 4 2.5 M12 7 l4 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24">
+    <path d="M5 12 h13 M13 6 l6 6 -6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24">
+    <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="https://www.analog-life.com/">analog-life.com</a>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+      <svg class="icon-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+      <svg class="icon-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Analog Tools</h1>
+    <p class="tagline">为模拟与射频电路学习者准备的小工具合集</p>
+    <p class="hint">纯前端实现 · 所有计算均在浏览器本地完成，不向服务器发送任何数据</p>
+  </section>
+
+  <section aria-label="工具列表">
+    <div id="tool-grid" class="tool-grid"></div>
+    <p id="empty-state" class="empty" hidden>工具正在准备中，敬请期待。</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
+  </div>
+</footer>
+
+<script src="./assets/js/theme.js" defer></script>
+<script src="./assets/js/tools.js" defer></script>
+</body>
+</html>

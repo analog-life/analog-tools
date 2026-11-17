@@ -1,0 +1,9 @@
+{
+  "name": "analog-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Analog Life 小工具合集（纯静态，无构建依赖）",
+  "scripts": {
+    "dev": "node dev-server.js"
+  }
+}

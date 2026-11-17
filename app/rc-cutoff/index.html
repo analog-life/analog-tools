@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>RC 截止频率计算器 · Analog Tools</title>
+<meta name="description" content="由电阻与电容值计算一阶 RC 滤波器的 −3 dB 截止频率，纯前端计算。">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="back" href="../">← 返回工具列表</a>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+      <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap tool-main">
+  <h1>RC 截止频率计算器</h1>
+  <p class="tool-intro">输入电阻与电容值，计算一阶 RC 低通／高通滤波器的 −3 dB 截止频率。</p>
+
+  <div class="tool-panel">
+    <div class="field-row">
+      <div class="field">
+        <label for="r-value">电阻 R</label>
+        <div class="input-group">
+          <input id="r-value" type="number" inputmode="decimal" min="0" step="any" value="1.6" aria-describedby="r-error">
+          <select id="r-unit" aria-label="电阻单位">
+            <option value="1">Ω</option>
+            <option value="1e3" selected>kΩ</option>
+            <option value="1e6">MΩ</option>
+          </select>
+        </div>
+        <p class="field-error" id="r-error" hidden>请输入大于 0 的电阻值。</p>
+      </div>
+      <div class="field">
+        <label for="c-value">电容 C</label>
+        <div class="input-group">
+          <input id="c-value" type="number" inputmode="decimal" min="0" step="any" value="100" aria-describedby="c-error">
+          <select id="c-unit" aria-label="电容单位">
+            <option value="1e-12">pF</option>
+            <option value="1e-9" selected>nF</option>
+            <option value="1e-6">µF</option>
+          </select>
+        </div>
+        <p class="field-error" id="c-error" hidden>请输入大于 0 的电容值。</p>
+      </div>
+    </div>
+
+    <div class="result" role="status" aria-live="polite">
+      <p class="result-label">截止频率 f<sub>c</sub></p>
+      <p class="result-value" id="result">—</p>
+      <p class="result-extra" id="result-extra"></p>
+    </div>
+
+    <p class="formula">计算公式：<code>f<sub>c</sub> = 1 / (2πRC)</code></p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
+  </div>
+</footer>
+
+<script src="../assets/js/theme.js" defer></script>
+<script>
+(function () {
+  "use strict";
+  var rValue = document.getElementById("r-value");
+  var rUnit  = document.getElementById("r-unit");
+  var cValue = document.getElementById("c-value");
+  var cUnit  = document.getElementById("c-unit");
+  var rError = document.getElementById("r-error");
+  var cError = document.getElementById("c-error");
+  var out    = document.getElementById("result");
+  var extra  = document.getElementById("result-extra");
+
+  function scaled(hz) {
+    var units = [[1e9, "GHz"], [1e6, "MHz"], [1e3, "kHz"], [1, "Hz"]];
+    for (var i = 0; i < units.length; i++) {
+      if (hz >= units[i][0]) {
+        var v = hz / units[i][0];
+        return (v >= 100 ? v.toFixed(1) : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")) + " " + units[i][1];
+      }
+    }
+    return hz.toExponential(2) + " Hz";
+  }
+
+  function calc() {
+    var r = parseFloat(rValue.value) * parseFloat(rUnit.value);
+    var c = parseFloat(cValue.value) * parseFloat(cUnit.value);
+    var rOk = isFinite(r) && r > 0;
+    var cOk = isFinite(c) && c > 0;
+    rError.hidden = rOk || rValue.value === "";
+    cError.hidden = cOk || cValue.value === "";
+    if (!rOk || !cOk) {
+      out.textContent = "—";
+      extra.textContent = "";
+      return;
+    }
+    var f = 1 / (2 * Math.PI * r * c);
+    out.textContent = scaled(f);
+    extra.textContent = "角频率 ωc = " + scaled(2 * Math.PI * f).replace("Hz", "rad/s") +
+      "，时间常数 τ = " + scaledTime(r * c);
+  }
+
+  function scaledTime(s) {
+    var units = [[1, "s"], [1e-3, "ms"], [1e-6, "µs"], [1e-9, "ns"]];
+    for (var i = 0; i < units.length; i++) {
+      if (s >= units[i][0]) {
+        var v = s / units[i][0];
+        return (v >= 100 ? v.toFixed(1) : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")) + " " + units[i][1];
+      }
+    }
+    return s.toExponential(2) + " s";
+  }
+
+  [rValue, rUnit, cValue, cUnit].forEach(function (el) {
+    el.addEventListener("input", calc);
+    el.addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

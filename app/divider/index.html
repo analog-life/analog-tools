@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>电阻分压计算器 · Analog Tools</title>
+<meta name="description" content="输入电压与两枚电阻，求分压输出与回路电流，纯前端计算。">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="back" href="../">← 返回工具列表</a>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+      <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap tool-main">
+  <h1>电阻分压计算器</h1>
+  <p class="tool-intro">两枚电阻串联，输入电压 Vin，求 R2 两端的分压输出 Vout 与回路电流。</p>
+
+  <div class="tool-panel">
+    <div class="field-row">
+      <div class="field">
+        <label for="vin">输入电压 Vin（V）</label>
+        <input id="vin" type="number" inputmode="decimal" step="any" value="5" aria-describedby="vin-error">
+        <p class="field-error" id="vin-error" hidden>请输入有效的电压值。</p>
+      </div>
+      <div class="field">
+        <label for="r1">上臂电阻 R1</label>
+        <div class="input-group">
+          <input id="r1" type="number" inputmode="decimal" min="0" step="any" value="10" aria-describedby="r1-error">
+          <select id="r1-unit" aria-label="R1 单位">
+            <option value="1">Ω</option>
+            <option value="1e3" selected>kΩ</option>
+            <option value="1e6">MΩ</option>
+          </select>
+        </div>
+        <p class="field-error" id="r1-error" hidden>请输入大于 0 的电阻值。</p>
+      </div>
+      <div class="field">
+        <label for="r2">下臂电阻 R2</label>
+        <div class="input-group">
+          <input id="r2" type="number" inputmode="decimal" min="0" step="any" value="10" aria-describedby="r2-error">
+          <select id="r2-unit" aria-label="R2 单位">
+            <option value="1">Ω</option>
+            <option value="1e3" selected>kΩ</option>
+            <option value="1e6">MΩ</option>
+          </select>
+        </div>
+        <p class="field-error" id="r2-error" hidden>请输入大于 0 的电阻值。</p>
+      </div>
+    </div>
+
+    <div class="result" role="status" aria-live="polite">
+      <p class="result-label">输出电压 V<sub>out</sub></p>
+      <p class="result-value" id="result">—</p>
+      <p class="result-extra" id="result-extra"></p>
+    </div>
+
+    <p class="formula">计算公式：<code>V<sub>out</sub> = Vin × R2 / (R1 + R2)</code></p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
+  </div>
+</footer>
+
+<script src="../assets/js/theme.js" defer></script>
+<script>
+(function () {
+  "use strict";
+  var vin   = document.getElementById("vin");
+  var r1    = document.getElementById("r1");
+  var r1u   = document.getElementById("r1-unit");
+  var r2    = document.getElementById("r2");
+  var r2u   = document.getElementById("r2-unit");
+  var vinE  = document.getElementById("vin-error");
+  var r1E   = document.getElementById("r1-error");
+  var r2E   = document.getElementById("r2-error");
+  var out   = document.getElementById("result");
+  var extra = document.getElementById("result-extra");
+
+  function scaled(v, unit, prefixes) {
+    var a = Math.abs(v);
+    for (var i = 0; i < prefixes.length; i++) {
+      if (a >= prefixes[i][0]) {
+        var x = v / prefixes[i][0];
+        return (Math.abs(x) >= 100 ? x.toFixed(1) : x.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")) + " " + prefixes[i][1] + unit;
+      }
+    }
+    return v.toExponential(2) + " " + unit;
+  }
+
+  function calc() {
+    var v  = parseFloat(vin.value);
+    var R1 = parseFloat(r1.value) * parseFloat(r1u.value);
+    var R2 = parseFloat(r2.value) * parseFloat(r2u.value);
+    var vOk  = isFinite(v);
+    var r1Ok = isFinite(R1) && R1 > 0;
+    var r2Ok = isFinite(R2) && R2 > 0;
+    vinE.hidden = vOk || vin.value === "";
+    r1E.hidden = r1Ok || r1.value === "";
+    r2E.hidden = r2Ok || r2.value === "";
+    if (!vOk || !r1Ok || !r2Ok) {
+      out.textContent = "—";
+      extra.textContent = "";
+      return;
+    }
+    var vout = v * R2 / (R1 + R2);
+    var i = v / (R1 + R2);
+    out.textContent = scaled(vout, "V", [[1, ""], [1e-3, "m"]]);
+    extra.textContent = "回路电流 I = " + scaled(i, "A", [[1, ""], [1e-3, "m"], [1e-6, "µ"]]) +
+      "，分压比 = " + (R2 / (R1 + R2) * 100).toFixed(2) + " %";
+  }
+
+  [vin, r1, r1u, r2, r2u].forEach(function (el) {
+    el.addEventListener("input", calc);
+    el.addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>
