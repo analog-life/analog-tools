@@ -251,6 +251,14 @@ main { flex: 1; }
   color: var(--text-2);
 }
 
+.beian {
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+.beian a { color: var(--text-2); }
+.beian a:hover { color: var(--accent); }
+.beian-sep { margin: 0 8px; opacity: 0.5; }
+
 /* ---------- 工具页通用 ---------- */
 .tool-header { padding: 18px 0 0; }
 
