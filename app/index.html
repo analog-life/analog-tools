@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+/* 目录地址缺少末尾斜杠时，修正相对资源与链接的基准路径 */
+(function () {
+  var path = location.pathname;
+  if (!/\/$/.test(path) && !/\.[^/]*$/.test(path)) {
+    var base = document.createElement("base");
+    base.href = path + "/";
+    document.head.appendChild(base);
+  }
+})();
+</script>
 <title>Analog Tools · 模拟人生工具箱</title>
 <meta name="description" content="为模拟与射频电路学习者准备的纯前端小工具合集，所有计算均在浏览器本地完成。">
 <script>

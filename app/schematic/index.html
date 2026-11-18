@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+/* 目录地址缺少末尾斜杠时，修正相对资源与链接的基准路径 */
+(function () {
+  var path = location.pathname;
+  if (!/\/$/.test(path) && !/\.[^/]*$/.test(path)) {
+    var base = document.createElement("base");
+    base.href = path + "/";
+    document.head.appendChild(base);
+  }
+})();
+</script>
 <title>Schematic Editor · Analog Tools</title>
 <meta name="description" content="在浏览器中快速绘制简洁的模拟电路原理图：元件、导线、网络标签、注释与符号分析，全部本地完成。">
 <script>

@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+/* 目录地址缺少末尾斜杠时，修正相对资源与链接的基准路径 */
+(function () {
+  var path = location.pathname;
+  if (!/\/$/.test(path) && !/\.[^/]*$/.test(path)) {
+    var base = document.createElement("base");
+    base.href = path + "/";
+    document.head.appendChild(base);
+  }
+})();
+</script>
 <title>电阻分压计算器 · Analog Tools</title>
 <meta name="description" content="输入电压与两枚电阻，求分压输出与回路电流，纯前端计算。">
 <script>

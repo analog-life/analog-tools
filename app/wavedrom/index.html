@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+/* 目录地址缺少末尾斜杠时，修正相对资源与链接的基准路径 */
+(function () {
+  var path = location.pathname;
+  if (!/\/$/.test(path) && !/\.[^/]*$/.test(path)) {
+    var base = document.createElement("base");
+    base.href = path + "/";
+    document.head.appendChild(base);
+  }
+})();
+</script>
 <title>WaveDrom 时序图绘制 · Analog Tools</title>
 <meta name="description" content="在浏览器中编写 WaveJSON，实时渲染数字电路时序图，支持导出 SVG / PNG。">
 <script>
