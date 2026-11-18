@@ -39,7 +39,7 @@ var EXAMPLES = [
     en: "SPI transfer",
     code: [
       '{ "signal": [',
-      '  { "name": "SCLK", "wave": "p......." },',
+      '  { "name": "SCLK", "wave": "p........." },',
       '  { "name": "MOSI", "wave": "x.2.2.2.2x", "data": ["D7", "D6", "D5", "D4"] },',
       '  { "name": "MISO", "wave": "x.5.5.5.5x", "data": ["D7", "D6", "D5", "D4"] },',
       '  { "name": "CS",   "wave": "1.0......1" }',
