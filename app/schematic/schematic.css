@@ -938,6 +938,7 @@ body.schematic-page {
 .manual-page .manual-wrap {
   max-width: 1200px;
   padding: 18px 24px 64px;
+  overflow-wrap: anywhere;
 }
 
 .manual-hero {
@@ -959,7 +960,7 @@ body.schematic-page {
 }
 
 .manual-lead {
-  max-width: 62ch;
+  max-width: none;
   margin-top: 10px;
   font-size: 1.02rem;
   color: var(--text-2);
@@ -1010,10 +1011,11 @@ body.schematic-page {
 
 .manual-section p,
 .manual-section li {
-  max-width: 68ch;
+  max-width: none;
   color: var(--text-2);
   font-size: 0.95rem;
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .manual-section p + p {
@@ -1045,6 +1047,7 @@ body.schematic-page {
   background: var(--accent-soft);
   color: var(--text);
   font-size: 0.88em;
+  overflow-wrap: anywhere;
 }
 
 .manual-section kbd,

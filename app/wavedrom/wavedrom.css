@@ -131,13 +131,14 @@
 .manual {
   max-width: 1200px;
   margin-inline: auto;
+  overflow-wrap: anywhere;
 }
 .manual h2 {
   margin-top: 36px;
   font-size: 1.3rem;
 }
 .manual h2:first-child { margin-top: 28px; }
-.manual p, .manual li { max-width: 70ch; }
+.manual p, .manual li { max-width: none; }
 .manual p { margin-top: 12px; color: var(--text); }
 .manual ul { margin: 12px 0 0 1.4em; }
 .manual li { margin-top: 6px; }
@@ -147,6 +148,7 @@
   background: var(--accent-soft);
   padding: 1px 6px;
   border-radius: 5px;
+  overflow-wrap: anywhere;
 }
 .manual pre {
   margin-top: 12px;
@@ -155,8 +157,10 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font: 13px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
-  max-width: 70ch;
+  max-width: 100%;
 }
 .manual table {
   margin-top: 14px;
@@ -169,6 +173,7 @@
   border: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
 }
 .manual th {
   background: var(--bg-elev);

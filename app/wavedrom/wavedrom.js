@@ -178,6 +178,17 @@ function fixSvgForDark(container) {
   var errorEl = document.getElementById("wd-error");
   var exampleSel = document.getElementById("wd-example");
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  var STORAGE_KEY = "at-wavedrom-code";
+
+  function readCachedCode() {
+    try { return localStorage.getItem(STORAGE_KEY); }
+    catch (e) { return null; }
+  }
+
+  function saveCode() {
+    try { localStorage.setItem(STORAGE_KEY, editor.value); }
+    catch (e) { /* 隐私模式下无法写入时忽略 */ }
+  }
 
   /* 生成深色皮肤：atdark（源自 default）、atnarrow（源自 narrow） */
   if (window.WaveSkin) {
@@ -250,6 +261,7 @@ function fixSvgForDark(container) {
 
   var timer = null;
   editor.addEventListener("input", function () {
+    saveCode();
     clearTimeout(timer);
     timer = setTimeout(render, 300);
   });
@@ -269,7 +281,7 @@ function fixSvgForDark(container) {
   }
   exampleSel.addEventListener("change", function () {
     var ex = EXAMPLES.find(function (e) { return e.id === exampleSel.value; });
-    if (ex) { editor.value = ex.code; render(); }
+    if (ex) { editor.value = ex.code; saveCode(); render(); }
   });
   document.addEventListener("at-lang-change", rebuildExamples);
 
@@ -348,6 +360,8 @@ function fixSvgForDark(container) {
 
   /* ---------- 初始化 ---------- */
   rebuildExamples();
-  editor.value = EXAMPLES[0].code;
+  var cachedCode = readCachedCode();
+  editor.value = cachedCode !== null ? cachedCode : EXAMPLES[0].code;
   render();
+  window.addEventListener("pagehide", saveCode);
 })();
