@@ -346,36 +346,27 @@ main { flex: 1; }
 
 /* ---------- 工具卡片网格 ---------- */
 .tool-grid {
-  --tool-card-width: 300px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   width: 100%;
-  max-width: calc(var(--tool-card-width) * 5 + 64px);
-  margin-inline: 0;
   padding: 8px 0 56px;
 }
 
-.tool-grid .card {
-  flex: 0 0 var(--tool-card-width);
-  width: var(--tool-card-width);
+@media (max-width: 1499px) {
+  .tool-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-@media (max-width: 1100px) {
-  .tool-grid { --tool-card-width: 280px; }
+@media (max-width: 1199px) {
+  .tool-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-@media (max-width: 640px) {
-  .tool-grid {
-    width: 100%;
-    max-width: none;
-  }
+@media (max-width: 899px) {
+  .tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
-  .tool-grid .card {
-    flex-basis: 100%;
-    width: 100%;
-  }
+@media (max-width: 639px) {
+  .tool-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .card {
