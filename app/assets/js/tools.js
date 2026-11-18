@@ -12,6 +12,12 @@
 
   var TOOLS = [
     {
+      slug: "wavedrom",
+      icon: "i-wave",
+      name: "WaveDrom 时序图绘制",
+      desc: "编写 WaveJSON，实时渲染数字电路时序图，支持导出 SVG / PNG，中英双语。"
+    },
+    {
       slug: "rc-cutoff",
       icon: "i-wave",
       name: "RC 截止频率计算器",

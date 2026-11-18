@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WaveDrom 时序图绘制 · Analog Tools</title>
+<meta name="description" content="在浏览器中编写 WaveJSON，实时渲染数字电路时序图，支持导出 SVG / PNG。">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="./wavedrom.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="back" href="../">← 返回工具列表</a>
+    <div class="tool-controls">
+      <a class="btn" href="./manual.html" data-i18n="manualBtn">使用手册</a>
+      <button id="lang-toggle" class="btn" type="button">EN</button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+        <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap tool-main">
+  <h1>WaveDrom</h1>
+  <p class="tool-intro" data-i18n="intro">编写 WaveJSON，实时渲染数字电路时序图。</p>
+  <p class="credit">
+    <span data-i18n="creditPrefix">基于开源项目</span>
+    <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">WaveDrom</a>
+    <span data-i18n="creditSuffix">构建（MIT 许可）· 原作者 Aliaksei Chapyzhenka</span>
+  </p>
+
+  <div class="wd-toolbar">
+    <label for="wd-example" class="sr-only" data-i18n="exampleLabel" style="font-size:0.9rem;color:var(--text-2)">示例</label>
+    <select id="wd-example"></select>
+    <span class="spacer"></span>
+    <button id="wd-export-svg" class="btn" type="button" data-i18n="exportSvg">导出 SVG</button>
+    <button id="wd-export-png" class="btn" type="button" data-i18n="exportPng">导出 PNG</button>
+  </div>
+
+  <div class="wd-grid">
+    <div class="wd-pane">
+      <div class="wd-pane-head"><span data-i18n="editorLabel">代码（WaveJSON）</span></div>
+      <textarea id="wd-editor" spellcheck="false" aria-label="WaveJSON"></textarea>
+      <div id="wd-error" class="wd-error" role="alert"></div>
+    </div>
+    <div class="wd-pane">
+      <div class="wd-pane-head"><span data-i18n="previewLabel">预览</span></div>
+      <div class="wd-preview">
+        <div id="WaveDrom_Display_0"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
+    <p class="beian">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+      <span class="beian-sep">·</span>
+      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+    </p>
+  </div>
+</footer>
+
+<script src="../assets/js/theme.js" defer></script>
+<script src="./vendor/wavedrom.unpkg.min.js"></script>
+<script src="./vendor/skins/default.js"></script>
+<script src="./vendor/skins/narrow.js"></script>
+<script src="./vendor/skins/dark.js"></script>
+<script src="./i18n.js"></script>
+<script src="./wavedrom.js"></script>
+</body>
+</html>

@@ -15,9 +15,16 @@ app/
 │   └── img/favicon.svg
 ├── rc-cutoff/index.html  ← 示例工具：RC 截止频率计算器
 ├── divider/index.html    ← 示例工具：电阻分压计算器
+├── wavedrom/             ← WaveDrom 时序图绘制（含使用手册 manual.html）
+│   └── vendor/           ← wavedrom 3.8.0 库文件（MIT 许可，附 LICENSE-wavedrom）
 ├── dev-server.js         ← 本地预览服务器（不要上传到服务器）
 └── package.json          ← 本地预览脚本（不要上传到服务器）
 ```
+
+## 第三方组件
+
+- **WaveDrom 3.8.0**（MIT © 2011-2026 Aliaksei Chapyzhenka），
+  原项目 <https://github.com/wavedrom/wavedrom>，本地化于 `wavedrom/vendor/`。
 
 ## 添加一个新工具
 

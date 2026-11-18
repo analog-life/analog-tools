@@ -1,0 +1,185 @@
+/* WaveDrom 工具页专有样式（在共享 style.css 之后加载） */
+
+/* ---------- 页头控制按钮 ---------- */
+.tool-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.18s ease-out, border-color 0.18s ease-out, transform 0.15s ease-out;
+}
+.btn:hover { color: var(--accent); border-color: var(--accent); }
+.btn:active { transform: scale(0.97); }
+.btn svg { width: 16px; height: 16px; }
+
+/* ---------- 署名行 ---------- */
+.credit {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.credit a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+.credit a:hover { color: var(--accent); }
+
+/* ---------- 工具栏 ---------- */
+.wd-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+.wd-toolbar select {
+  min-height: 40px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.wd-toolbar select:focus { outline: none; border-color: var(--accent); }
+.wd-toolbar .spacer { flex: 1; }
+
+/* ---------- 编辑器 + 预览 分栏 ---------- */
+.wd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  margin-bottom: 48px;
+  align-items: stretch;
+}
+@media (max-width: 820px) {
+  .wd-grid { grid-template-columns: 1fr; }
+}
+
+.wd-pane {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.wd-pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+#wd-editor {
+  flex: 1;
+  min-height: 440px;
+  padding: 14px 16px;
+  border: 0;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+  font: 14px/1.65 ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, "Courier New", monospace;
+  tab-size: 2;
+  white-space: pre;
+}
+#wd-editor:focus { outline: none; }
+
+.wd-preview {
+  flex: 1;
+  min-height: 440px;
+  padding: 20px 16px;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.wd-preview svg { max-width: none; }
+
+/* ---------- 错误提示 ---------- */
+.wd-error {
+  display: none;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: oklch(0.55 0.18 30);
+  border-top: 1px solid var(--border);
+  background: oklch(0.55 0.18 30 / 0.08);
+  word-break: break-all;
+}
+.wd-error.show { display: block; }
+:root[data-theme="dark"] .wd-error { color: oklch(0.75 0.14 40); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wd-error { color: oklch(0.75 0.14 40); }
+}
+
+/* ---------- 使用手册页 ---------- */
+.manual h2 {
+  margin-top: 36px;
+  font-size: 1.3rem;
+}
+.manual h2:first-child { margin-top: 28px; }
+.manual p, .manual li { max-width: 70ch; }
+.manual p { margin-top: 12px; color: var(--text); }
+.manual ul { margin: 12px 0 0 1.4em; }
+.manual li { margin-top: 6px; }
+.manual code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+.manual pre {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-x: auto;
+  font: 13px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  max-width: 70ch;
+}
+.manual table {
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  max-width: 100%;
+}
+.manual th, .manual td {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.manual th {
+  background: var(--bg-elev);
+  font-weight: 600;
+}
+.manual td code { background: transparent; padding: 0; }
+
+/* 语言块切换 */
+[data-lang-block] { display: none; }
+:root[data-lang="zh"] [data-lang-block="zh"] { display: block; }
+:root[data-lang="en"] [data-lang-block="en"] { display: block; }
