@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Schematic Editor · Analog Tools</title>
+<meta name="description" content="在浏览器中快速绘制简洁的模拟电路原理图：元件、导线、网络标签、注释与符号分析，全部本地完成。">
+<script>
+/* 尽早应用已保存的主题，避免页面闪烁 */
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+    var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.effectiveTheme = dark ? "dark" : "light";
+  } catch (e) { /* 忽略隐私模式下的异常 */ }
+})();
+</script>
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="./assets/index-Dycg_2g4.css">
+<link rel="stylesheet" href="./schematic.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  svg: { fontCache: "local" },
+  options: {
+    enableSpeech: false,
+    enableBraille: false,
+    a11y: { speech: false, braille: false },
+    safeOptions: {
+      allow: { URLs: "safe", classes: "safe", cssIDs: "safe", styles: "safe" },
+      safeProtocols: { http: true, https: true, file: false, javascript: false, data: false }
+    }
+  },
+  startup: { typeset: false }
+};
+</script>
+<script async src="./vendor/mathjax/tex-svg.js" onload="window.dispatchEvent(new Event('mathjax-ready'))"></script>
+</head>
+<body class="schematic-page">
+
+<svg class="bg-art" aria-hidden="true" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+  <path d="M-20 150 Q 90 50, 200 150 T 420 150 T 640 150 T 860 150 T 1080 150 T 1300 150 T 1520 150" fill="none"/>
+  <path d="M-20 205 Q 90 125, 200 205 T 420 205 T 640 205 T 860 205 T 1080 205 T 1300 205 T 1520 205" fill="none"/>
+  <path d="M-20 760 Q 120 660, 260 760 T 540 760 T 820 760 T 1100 760 T 1380 760 T 1660 760" fill="none"/>
+  <path d="M980 640 h150 v-90 h130" fill="none"/>
+  <circle cx="980" cy="640" r="4" class="dot"/>
+  <circle cx="1260" cy="550" r="4" class="dot"/>
+</svg>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="back" href="../" data-i18n="back">← 返回工具列表</a>
+    <div class="tool-controls">
+      <a class="btn" href="./manual.html" data-i18n="manual">使用手册</a>
+      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
+        <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span class="lang-word">Language</span>
+        <span class="lang-value" id="lang-value">EN</span>
+      </button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+        <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap schematic-main">
+  <section class="schematic-hero">
+    <div class="hero-copy">
+      <h1>Schematic Editor</h1>
+      <p class="tagline" data-i18n="tagline">快速、简洁地绘制模拟电路原理图</p>
+      <p class="credit-line">
+        <span data-i18n="creditPrefix">基于开源项目</span>
+        <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing Schematic Editor</a>
+        <span data-i18n="creditSuffix">（MIT 许可）· 原作者 RarityBrown</span>
+      </p>
+    </div>
+    <p class="privacy-note" data-i18n="privacy">绘制内容仅保存在本浏览器，不会上传。</p>
+  </section>
+
+  <section class="editor-frame" aria-label="Schematic Editor">
+    <div id="app"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/" data-i18n="siteLink">返回主站</a></p>
+    <p class="beian">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+      <span class="beian-sep">·</span>
+      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+    </p>
+  </div>
+</footer>
+
+<script src="../assets/js/theme.js" defer></script>
+<script src="./schematic-i18n.js" defer></script>
+<script src="./schematic-ui.js" defer></script>
+<script type="module" src="./assets/index-D2LH0-RX.js"></script>
+</body>
+</html>

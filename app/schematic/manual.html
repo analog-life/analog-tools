@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Schematic Editor 使用手册 · Analog Tools</title>
+<meta name="description" content="Schematic Editor 的使用说明：界面、绘制流程、元件属性、导线、注释、导入导出、符号分析与快捷键。">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("at-theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+    var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.effectiveTheme = dark ? "dark" : "light";
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+<link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="./schematic.css">
+</head>
+<body class="schematic-page manual-page">
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="back" href="./" data-i18n="manualBack">← 返回编辑器</a>
+    <div class="tool-controls">
+      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
+        <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span class="lang-word">Language</span>
+        <span class="lang-value" id="lang-value">EN</span>
+      </button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
+        <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap manual-wrap">
+
+<div data-lang-block="zh">
+  <section class="manual-hero">
+    <p class="manual-kicker">Schematic Editor</p>
+    <h1>使用手册</h1>
+    <p class="manual-lead">一个在浏览器里快速绘制模拟电路原理图的小工具。元件、导线、网络标签、注释与符号分析都在本地完成，不上传任何数据。</p>
+  </section>
+
+  <nav class="manual-toc" aria-label="目录">
+    <a href="#intro">简介</a>
+    <a href="#interface">界面</a>
+    <a href="#draw">绘制流程</a>
+    <a href="#parts">元件与属性</a>
+    <a href="#wires">导线与标签</a>
+    <a href="#notes">注释与公式</a>
+    <a href="#files">文档与导出</a>
+    <a href="#analysis">符号分析</a>
+    <a href="#keys">快捷键</a>
+    <a href="#privacy">数据与隐私</a>
+  </nav>
+
+  <section class="manual-section" id="intro">
+    <h2>简介</h2>
+    <p>这个工具适合快速记录、讲解和分享模拟电路：从电阻、电容、MOS 管到运放、ADC/DAC 与功能块，拖放后接上导线即可。默认使用 Razavi 风格的符号模板。</p>
+    <p>工具基于开源项目 <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing Schematic Editor</a>（MIT 许可，原作者 RarityBrown）移植，并改为与本站一致的界面与中英文文案。</p>
+    <div class="manual-callout">
+      <strong>完全本地。</strong>绘图内容保存在浏览器的 localStorage 中，只有导出或复制时才会产生文件；服务器不会收到任何电路数据。
+    </div>
+  </section>
+
+  <section class="manual-section" id="interface">
+    <h2>界面</h2>
+    <ul>
+      <li><strong>左侧面板：</strong>上方选择符号模板与元件，下方是属性编辑器。面板宽度可以拖动右边缘调整；窄屏时从左侧边缘的把手拉出。</li>
+      <li><strong>中间画布：</strong>顶部是文档标签与工具栏，底部状态栏会提示当前操作。滚轮或双指缩放，中键拖动或触摸拖动平移。</li>
+      <li><strong>右侧符号分析：</strong>从右边缘把手拉出，可以计算传递函数和输入/输出阻抗。</li>
+      <li><strong>页头：</strong>使用手册、Language 语言切换与深色模式切换。</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="draw">
+    <h2>绘制流程</h2>
+    <ol>
+      <li>点击工具栏的「放置元件」，或直接按 <kbd>i</kbd>，左侧出现元件选择器。</li>
+      <li>选择元件（例如 resistor），在画布上点击放置；继续点击可连续放置多个。按 <kbd>Esc</kbd> 结束。</li>
+      <li>按 <kbd>w</kbd> 进入导线模式，点击引脚、导线端点或网格点开始画线；每次点击增加一个拐点，点击引脚或按 <kbd>Enter</kbd> 结束。</li>
+      <li>按 <kbd>Esc</kbd> 回到选择状态，点击对象后可在左下角属性编辑器中修改名称、数值与外观。</li>
+      <li>用 <kbd>r</kbd> 旋转、<kbd>Shift</kbd>+<kbd>R</kbd> 水平镜像；按住 <kbd>Shift</kbd> 点击可以多选。</li>
+    </ol>
+    <p>画布按 10 px 网格吸附，元件符号本身使用独立的 20 px 设计单位，因此移动与缩放不会改变符号比例。</p>
+  </section>
+
+  <section class="manual-section" id="parts">
+    <h2>元件与属性</h2>
+    <p>选中元件后，属性编辑器会按元件类型显示可编辑项：</p>
+    <ul>
+      <li><strong>名称与标签：</strong>修改位号（如 R1），控制是否显示标签和数值，以及标签位置。</li>
+      <li><strong>数值：</strong>电阻、电容、电感、电源等可以直接填写工程值，供符号分析使用。</li>
+      <li><strong>颜色与尺寸：</strong>符号颜色、线宽、×0.5 / ×1 / ×2 尺寸与固定/可变视图。</li>
+      <li><strong>类型专属选项：</strong>MOS 的引脚数与箭头、运放的极性、电感的抽头与同名端、DFF 的时钟边沿/置位/复位、滤波器的类型等。</li>
+    </ul>
+    <p>颜色样本已改成圆形色片；第一个带圆环的是「默认黑色」，最后一个色片可打开系统取色器。</p>
+  </section>
+
+  <section class="manual-section" id="wires">
+    <h2>导线与网络标签</h2>
+    <ul>
+      <li>导线有两种样式：普通信号线与宽线。按 <kbd>Shift</kbd>+<kbd>w</kbd> 可直接使用宽线。</li>
+      <li>导线相交并形成连接时会自动出现节点；把导线拖到引脚附近会自动吸附。</li>
+      <li>按 <kbd>L</kbd> 进入网络标签模式，输入名称后按 <kbd>Enter</kbd>，再点击导线或节点放置标签。标签用于命名网络，也会影响符号分析的网络列表。</li>
+      <li>选中导线或节点后可以修改颜色、线宽、起点/终点标记和数字总线位宽。</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="notes">
+    <h2>注释与公式</h2>
+    <p>按 <kbd>Shift</kbd>+<kbd>N</kbd> 或点击工具栏的注释图标，在画布上放置说明文字。注释支持纯文本与 Markdown，可在属性编辑器里切换格式、文字颜色与填充色。</p>
+    <p>公式使用 MathJax 在本地渲染：行内写作 <code>$V_{out}$</code>，独立公式先输入 <code>$$</code> 再按 <kbd>Enter</kbd>，然后在公式块中填写 TeX。MathJax 已随工具本地化，不依赖 CDN。双击注释即可编辑，<kbd>Esc</kbd> 结束编辑。</p>
+  </section>
+
+  <section class="manual-section" id="files">
+    <h2>文档与导出</h2>
+    <ul>
+      <li>顶部标签栏可以新建多个原理图；<strong>+</strong> 新建，标签上的 × 关闭，双击标签可重命名。</li>
+      <li>标签栏右侧的按钮依次是：导入 JSON、从剪贴板粘贴 JSON、导出 JSON。</li>
+      <li>编辑内容会自动保存在当前浏览器。关闭标签后仍可从「最近关闭」恢复（如果界面提供）。</li>
+      <li>在画布上框选或按住 <kbd>Shift</kbd> 多选后，右键可以复制为 SVG、PNG、网表或 JSON。</li>
+      <li>导出的 JSON 是备份与迁移的唯一可靠方式；清除浏览器站点数据会同时删除本地文档。</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="analysis">
+    <h2>符号分析</h2>
+    <ol>
+      <li>从右侧边缘拉出「符号分析」面板。</li>
+      <li>为 Input +、Input −、Output +、Output − 选择网络；也可以点击 Pick 后在画布上选取。</li>
+      <li>点击「计算 H(s)、Zin(s)、Zout(s)」。结果会显示传递函数、输入阻抗和输出阻抗。</li>
+    </ol>
+    <p>分析使用属性编辑器中的元件数值。开关、SPNT 等没有符号模型的元件不会参与计算。复杂电路可能需要较多计算时间。</p>
+  </section>
+
+  <section class="manual-section" id="keys">
+    <h2>快捷键</h2>
+    <div class="key-table">
+      <div><kbd>i</kbd><span>放置元件</span></div>
+      <div><kbd>w</kbd><span>普通导线</span></div>
+      <div><kbd>Shift</kbd> + <kbd>w</kbd><span>宽导线</span></div>
+      <div><kbd>L</kbd><span>网络标签</span></div>
+      <div><kbd>Shift</kbd> + <kbd>N</kbd><span>新建注释</span></div>
+      <div><kbd>r</kbd><span>旋转</span></div>
+      <div><kbd>Shift</kbd> + <kbd>R</kbd><span>水平镜像</span></div>
+      <div><kbd>m</kbd><span>移动 / 拉伸</span></div>
+      <div><kbd>f</kbd><span>适应画布</span></div>
+      <div><kbd>Del</kbd><span>删除选中</span></div>
+      <div><kbd>Shift</kbd> + <kbd>Del</kbd><span>临时删除</span></div>
+      <div><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Z</kbd><span>撤销</span></div>
+      <div><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd><span>重做</span></div>
+      <div><kbd>Enter</kbd><span>结束当前导线</span></div>
+      <div><kbd>Esc</kbd><span>取消当前操作</span></div>
+    </div>
+  </section>
+
+  <section class="manual-section" id="privacy">
+    <h2>数据与隐私</h2>
+    <p>所有原理图、视图位置和界面偏好都保存在本浏览器的 localStorage 中，键名以 <code>at-</code> 开头，例如：</p>
+    <ul>
+      <li><code>at-schematic-workspace</code>：文档清单</li>
+      <li><code>at-schematic:&lt;id&gt;</code>：单个原理图快照</li>
+      <li><code>at-schematic-view:&lt;id&gt;</code>：缩放与平移</li>
+      <li><code>at-schematic-layout</code>：面板宽度等布局</li>
+      <li><code>at-theme</code>、<code>at-lang</code>：主题与语言</li>
+    </ul>
+    <p>这些数据不会上传服务器，也不跨设备同步。需要长期保存或换设备时，请导出 JSON。清除站点数据会删除全部本地原理图。</p>
+  </section>
+
+  <section class="manual-section" id="credits">
+    <h2>致谢与许可</h2>
+    <p>本工具基于 <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing-schematic-editor</a>（MIT © 2026 RarityBrown）移植。交互式画布使用 JointJS（MPL-2.0），公式渲染使用 MathJax（Apache-2.0）。完整的第三方许可文本见工具目录中的 <code>LICENSE</code> 与 <code>THIRD_PARTY_LICENSES.txt</code>。</p>
+  </section>
+</div>
+
+<div data-lang-block="en" hidden>
+  <section class="manual-hero">
+    <p class="manual-kicker">Schematic Editor</p>
+    <h1>User Manual</h1>
+    <p class="manual-lead">A small browser tool for sketching analog circuits. Components, wires, net labels, notes and symbolic analysis all run locally; nothing is uploaded.</p>
+  </section>
+
+  <nav class="manual-toc" aria-label="Contents">
+    <a href="#intro-en">Introduction</a>
+    <a href="#interface-en">Interface</a>
+    <a href="#draw-en">Drawing</a>
+    <a href="#parts-en">Parts &amp; properties</a>
+    <a href="#wires-en">Wires &amp; labels</a>
+    <a href="#notes-en">Notes &amp; formulas</a>
+    <a href="#files-en">Documents</a>
+    <a href="#analysis-en">Analysis</a>
+    <a href="#keys-en">Shortcuts</a>
+    <a href="#privacy-en">Data &amp; privacy</a>
+  </nav>
+
+  <section class="manual-section" id="intro-en">
+    <h2>Introduction</h2>
+    <p>This editor is made for quickly capturing, explaining and sharing analog circuits: resistors, capacitors, MOS devices, op-amps, ADC/DAC blocks and more. Place a part, draw a wire, and you have a schematic. The default symbol template is Razavi.</p>
+    <p>It is a port of the open-source <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing Schematic Editor</a> (MIT, original author RarityBrown), restyled to match this site and translated into Chinese and English.</p>
+    <div class="manual-callout">
+      <strong>Fully local.</strong> Drawings live in your browser's localStorage. Files are only created when you export or copy; the server never receives circuit data.
+    </div>
+  </section>
+
+  <section class="manual-section" id="interface-en">
+    <h2>Interface</h2>
+    <ul>
+      <li><strong>Left panel:</strong> symbol template and part picker at the top, property editor below. Drag its right edge to resize; on narrow screens pull it out from the left edge handle.</li>
+      <li><strong>Canvas:</strong> document tabs and toolbar above, status bar below. Wheel or pinch zooms; middle-drag or touch-drag pans.</li>
+      <li><strong>Symbolic analysis:</strong> pull it out from the right edge handle to compute transfer functions and input/output impedance.</li>
+      <li><strong>Header:</strong> User Manual, Language switch and dark-mode toggle.</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="draw-en">
+    <h2>Drawing</h2>
+    <ol>
+      <li>Click <em>Add Instance</em> in the toolbar, or press <kbd>i</kbd>, to open the part picker.</li>
+      <li>Choose a part (for example <em>resistor</em>) and click on the canvas. Keep clicking to place more; press <kbd>Esc</kbd> to stop.</li>
+      <li>Press <kbd>w</kbd> for wire mode. Click a pin, wire end or grid point to start; each click adds a bend, and clicking a pin or pressing <kbd>Enter</kbd> finishes.</li>
+      <li>Press <kbd>Esc</kbd> to return to selection, then click an object to edit its name, value and appearance in the property editor.</li>
+      <li>Press <kbd>r</kbd> to rotate, <kbd>Shift</kbd>+<kbd>R</kbd> to mirror horizontally; <kbd>Shift</kbd>-click to add to the selection.</li>
+    </ol>
+    <p>Wires and parts snap to a 10 px grid, while symbol geometry uses a separate 20 px design unit, so scaling never distorts symbols.</p>
+  </section>
+
+  <section class="manual-section" id="parts-en">
+    <h2>Parts &amp; properties</h2>
+    <p>Selecting a part reveals type-specific controls in the property editor:</p>
+    <ul>
+      <li><strong>Name and labels:</strong> reference designator (R1), label/value visibility and label position.</li>
+      <li><strong>Values:</strong> resistance, capacitance, inductance and source values, also used by symbolic analysis.</li>
+      <li><strong>Color and size:</strong> symbol color, stroke width, ×0.5 / ×1 / ×2 size, fixed or variable view.</li>
+      <li><strong>Type options:</strong> MOS pin count and arrow, amplifier polarity, inductor taps and dots, DFF clock/set/reset, filter kind and more.</li>
+    </ul>
+    <p>Color swatches are round. The first ringed swatch is the default black; the last chip opens the system color picker.</p>
+  </section>
+
+  <section class="manual-section" id="wires-en">
+    <h2>Wires &amp; labels</h2>
+    <ul>
+      <li>Two wire styles are available: signal and wide. <kbd>Shift</kbd>+<kbd>w</kbd> starts a wide wire directly.</li>
+      <li>Wires that meet at a connection get a junction dot automatically, and wire ends snap to nearby pins.</li>
+      <li>Press <kbd>L</kbd> for net labels. Type a name, press <kbd>Enter</kbd>, then click a wire or junction. Labels name nets and feed the analysis net list.</li>
+      <li>Selected wires and junctions expose color, width, end markers and digital bus width.</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="notes-en">
+    <h2>Notes &amp; formulas</h2>
+    <p>Press <kbd>Shift</kbd>+<kbd>N</kbd> or click the note icon to place text on the canvas. Notes support plain text and Markdown, with text color and fill controls in the property editor.</p>
+    <p>Formulas are rendered locally with MathJax: inline <code>$V_{out}$</code>; for a display formula type <code>$$</code> and press <kbd>Enter</kbd>, then fill in the TeX block. MathJax is bundled with the tool, not loaded from a CDN. Double-click a note to edit; <kbd>Esc</kbd> finishes editing.</p>
+  </section>
+
+  <section class="manual-section" id="files-en">
+    <h2>Documents</h2>
+    <ul>
+      <li>The tab bar holds multiple schematics. <strong>+</strong> creates one, × closes it, and double-clicking a tab renames it.</li>
+      <li>The buttons at the right of the tab bar import JSON, paste JSON from the clipboard, and export JSON.</li>
+      <li>Edits are saved automatically in this browser. Closing a tab keeps it recoverable from recently closed documents when available.</li>
+      <li>Box-select or <kbd>Shift</kbd>-click, then right-click to copy as SVG, PNG, netlist or JSON.</li>
+      <li>Exported JSON is the reliable backup and transfer format. Clearing site data also deletes local documents.</li>
+    </ul>
+  </section>
+
+  <section class="manual-section" id="analysis-en">
+    <h2>Symbolic analysis</h2>
+    <ol>
+      <li>Pull out the Symbolic Analysis panel from the right edge.</li>
+      <li>Choose nets for Input +, Input −, Output + and Output −, or click Pick and select on the canvas.</li>
+      <li>Click <em>Compute H(s), Zin(s), Zout(s)</em> to get the transfer function and input/output impedance.</li>
+    </ol>
+    <p>Analysis uses the component values from the property editor. Parts without a symbolic model (switches, SPNT and similar) are ignored. Large circuits can take a while to solve.</p>
+  </section>
+
+  <section class="manual-section" id="keys-en">
+    <h2>Shortcuts</h2>
+    <div class="key-table">
+      <div><kbd>i</kbd><span>Add instance</span></div>
+      <div><kbd>w</kbd><span>Signal wire</span></div>
+      <div><kbd>Shift</kbd> + <kbd>w</kbd><span>Wide wire</span></div>
+      <div><kbd>L</kbd><span>Net label</span></div>
+      <div><kbd>Shift</kbd> + <kbd>N</kbd><span>New note</span></div>
+      <div><kbd>r</kbd><span>Rotate</span></div>
+      <div><kbd>Shift</kbd> + <kbd>R</kbd><span>Mirror horizontally</span></div>
+      <div><kbd>m</kbd><span>Move / stretch</span></div>
+      <div><kbd>f</kbd><span>Fit view</span></div>
+      <div><kbd>Del</kbd><span>Delete selection</span></div>
+      <div><kbd>Shift</kbd> + <kbd>Del</kbd><span>Temporary delete</span></div>
+      <div><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Z</kbd><span>Undo</span></div>
+      <div><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd><span>Redo</span></div>
+      <div><kbd>Enter</kbd><span>Finish wire</span></div>
+      <div><kbd>Esc</kbd><span>Cancel current action</span></div>
+    </div>
+  </section>
+
+  <section class="manual-section" id="privacy-en">
+    <h2>Data &amp; privacy</h2>
+    <p>Schematics, view positions and interface preferences are stored in localStorage under keys prefixed with <code>at-</code>:</p>
+    <ul>
+      <li><code>at-schematic-workspace</code> — document list</li>
+      <li><code>at-schematic:&lt;id&gt;</code> — one schematic snapshot</li>
+      <li><code>at-schematic-view:&lt;id&gt;</code> — zoom and pan</li>
+      <li><code>at-schematic-layout</code> — panel layout</li>
+      <li><code>at-theme</code>, <code>at-lang</code> — theme and language</li>
+    </ul>
+    <p>Nothing is uploaded or synced. Export JSON for long-term storage or another device. Clearing site data deletes all local schematics.</p>
+  </section>
+
+  <section class="manual-section" id="credits-en">
+    <h2>Credits &amp; licenses</h2>
+    <p>Ported from <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing-schematic-editor</a> (MIT © 2026 RarityBrown). The interactive canvas uses JointJS (MPL-2.0) and formulas use MathJax (Apache-2.0). Full third-party license texts are included as <code>LICENSE</code> and <code>THIRD_PARTY_LICENSES.txt</code> in the tool folder.</p>
+  </section>
+</div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/" data-i18n="siteLink">返回主站</a></p>
+    <p class="beian">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+      <span class="beian-sep">·</span>
+      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+    </p>
+  </div>
+</footer>
+
+<script src="../assets/js/theme.js" defer></script>
+<script src="./schematic-i18n.js" defer></script>
+</body>
+</html>

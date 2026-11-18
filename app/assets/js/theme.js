@@ -16,6 +16,7 @@
 
   function update() {
     var dark = effective() === "dark";
+    document.documentElement.dataset.effectiveTheme = dark ? "dark" : "light";
     btn.classList.toggle("is-dark", dark);
     btn.setAttribute("aria-pressed", String(dark));
     btn.setAttribute("aria-label", dark ? "切换到浅色模式" : "切换到深色模式");

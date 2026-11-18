@@ -15,6 +15,10 @@ app/
 │   └── img/favicon.svg
 ├── rc-cutoff/index.html  ← 示例工具：RC 截止频率计算器
 ├── divider/index.html    ← 示例工具：电阻分压计算器
+├── schematic/            ← 原理图绘制（Schematic Editor，含使用手册 manual.html）
+│   ├── assets/           ← 构建产物（JointJS 等已打包）
+│   ├── vendor/mathjax/   ← MathJax 4.1.3（Apache-2.0，本地化）
+│   └── LICENSE / THIRD_PARTY_LICENSES.txt
 ├── wavedrom/             ← WaveDrom 时序图绘制（含使用手册 manual.html）
 │   └── vendor/           ← wavedrom 3.8.0 库文件（MIT 许可，附 LICENSE-wavedrom）
 ├── dev-server.js         ← 本地预览服务器（不要上传到服务器）
@@ -25,6 +29,13 @@ app/
 
 - **WaveDrom 3.8.0**（MIT © 2011-2026 Aliaksei Chapyzhenka），
   原项目 <https://github.com/wavedrom/wavedrom>，本地化于 `wavedrom/vendor/`。
+- **Schematic Editor** 移植自
+  <https://github.com/KingsAnalog/GmKing-schematic-editor>
+  （MIT © 2026 RarityBrown），构建产物与许可文本位于 `schematic/`。
+  画布使用 JointJS（MPL-2.0），公式渲染使用本地化的 MathJax 4.1.3
+  （Apache-2.0，`schematic/vendor/mathjax/`）。
+- 说明：`schematic/` 的 JS / CSS 是上游 Vite 构建产物，本站只保留产物，
+  不引入打包器；页面外观由 `schematic/schematic.css` 覆盖。
 
 ## 添加一个新工具
 

@@ -12,6 +12,12 @@
 
   var TOOLS = [
     {
+      slug: "schematic",
+      icon: "i-schematic",
+      name: "Schematic Editor",
+      desc: "快速绘制模拟电路原理图：元件、导线、网络标签、注释与符号分析，中英双语。"
+    },
+    {
       slug: "wavedrom",
       icon: "i-wave",
       name: "WaveDrom 时序图绘制",
