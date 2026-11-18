@@ -349,11 +349,11 @@ main { flex: 1; }
   --tool-card-width: 300px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 16px;
-  width: fit-content;
+  width: 100%;
   max-width: calc(var(--tool-card-width) * 5 + 64px);
-  margin-inline: auto;
+  margin-inline: 0;
   padding: 8px 0 56px;
 }
 
