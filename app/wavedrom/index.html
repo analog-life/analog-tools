@@ -18,14 +18,28 @@
 <link rel="stylesheet" href="../assets/css/style.css">
 <link rel="stylesheet" href="./wavedrom.css">
 </head>
-<body>
+<body class="app-page">
 
-<header class="site-header">
+<header class="site-header app-header">
   <div class="wrap header-inner">
-    <a class="back" href="../">← 返回工具列表</a>
+    <div class="header-left">
+      <a class="back" href="../" aria-label="返回工具列表">
+        <span class="back-arrow">←</span>
+        <span class="back-label" data-i18n="back">返回工具列表</span>
+      </a>
+      <span class="header-divider" aria-hidden="true"></span>
+      <a class="app-title" href="./">WaveDrom</a>
+    </div>
     <div class="tool-controls">
       <a class="btn" href="./manual.html" data-i18n="manualBtn">使用手册</a>
-      <button id="lang-toggle" class="btn" type="button">EN</button>
+      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
+        <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span class="lang-word">Language</span>
+        <span class="lang-value" id="lang-value">EN</span>
+      </button>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
         <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
@@ -39,17 +53,9 @@
   </div>
 </header>
 
-<main class="wrap tool-main">
-  <h1>WaveDrom</h1>
-  <p class="tool-intro" data-i18n="intro">编写 WaveJSON，实时渲染数字电路时序图。</p>
-  <p class="credit">
-    <span data-i18n="creditPrefix">基于开源项目</span>
-    <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">WaveDrom</a>
-    <span data-i18n="creditSuffix">构建（MIT 许可）· 原作者 Aliaksei Chapyzhenka</span>
-  </p>
-
+<main class="wrap wd-main">
   <div class="wd-toolbar">
-    <label for="wd-example" class="sr-only" data-i18n="exampleLabel" style="font-size:0.9rem;color:var(--text-2)">示例</label>
+    <label for="wd-example" class="sr-only" data-i18n="exampleLabel">示例</label>
     <select id="wd-example"></select>
     <span class="spacer"></span>
     <button id="wd-export-svg" class="btn" type="button" data-i18n="exportSvg">导出 SVG</button>
@@ -71,13 +77,21 @@
   </div>
 </main>
 
-<footer class="site-footer">
+<footer class="site-footer app-footer">
   <div class="wrap">
-    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
-    <p class="beian">
-      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+    <p class="footer-credit">
+      <span data-i18n="creditPrefix">基于开源项目</span>
+      <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">WaveDrom</a>
+      <span data-i18n="creditSuffix">构建（MIT 许可）· 原作者 Aliaksei Chapyzhenka</span>
+    </p>
+    <p class="footer-meta">
+      <span>© 2026 Analog Life</span>
       <span class="beian-sep">·</span>
-      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+      <span class="beian">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+        <span class="beian-sep">·</span>
+        <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+      </span>
     </p>
   </div>
 </footer>

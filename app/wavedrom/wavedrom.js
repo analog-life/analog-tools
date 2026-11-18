@@ -3,11 +3,12 @@
 
 /* ---------- 双语文案 ---------- */
 window.AT_I18N = {
+  back:          { zh: "返回工具列表", en: "Back to tools" },
   manualBtn:     { zh: "使用手册", en: "User Manual" },
   intro:         { zh: "编写 WaveJSON，实时渲染数字电路时序图。所有处理均在本地完成，不上传任何数据。",
                    en: "Write WaveJSON and render digital timing diagrams live. Everything runs locally; nothing is uploaded." },
-  creditPrefix:  { zh: "基于开源项目 ", en: "Built on the open-source project " },
-  creditSuffix:  { zh: " （MIT 许可）· 原作者 Aliaksei Chapyzhenka", en: " (MIT License) · Original author: Aliaksei Chapyzhenka" },
+  creditPrefix:  { zh: "基于开源项目", en: "Built on the open-source project" },
+  creditSuffix:  { zh: "（MIT 许可）· 原作者 Aliaksei Chapyzhenka", en: "(MIT License) · Original author: Aliaksei Chapyzhenka" },
   exampleLabel:  { zh: "示例", en: "Examples" },
   exportSvg:     { zh: "导出 SVG", en: "Export SVG" },
   exportPng:     { zh: "导出 PNG", en: "Export PNG" },

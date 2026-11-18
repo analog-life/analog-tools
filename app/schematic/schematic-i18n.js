@@ -12,7 +12,7 @@
 
   /* 静态页面文案（页头、页脚、工具介绍、手册） */
   var PAGE = {
-    back: { zh: "← 返回工具列表", en: "← Back to tools" },
+    back: { zh: "返回工具列表", en: "Back to tools" },
     manual: { zh: "使用手册", en: "User Manual" },
     tagline: { zh: "快速、简洁地绘制模拟电路原理图", en: "Draw clean analog schematics, fast." },
     creditPrefix: { zh: "基于开源项目", en: "Built on the open-source" },

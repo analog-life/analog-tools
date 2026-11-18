@@ -24,7 +24,14 @@
   <div class="wrap header-inner">
     <a class="back" href="./index.html" data-i18n="backTool">← 返回工具</a>
     <div class="tool-controls">
-      <button id="lang-toggle" class="btn" type="button">EN</button>
+      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
+        <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span class="lang-word">Language</span>
+        <span class="lang-value" id="lang-value">EN</span>
+      </button>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
         <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>

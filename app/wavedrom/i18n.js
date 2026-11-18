@@ -33,8 +33,9 @@
     });
     var btn = document.getElementById("lang-toggle");
     if (btn) {
-      btn.textContent = lang === "zh" ? "EN" : "中";
-      btn.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切换到中文");
+      var value = document.getElementById("lang-value");
+      if (value) value.textContent = lang === "zh" ? "EN" : "中文";
+      btn.setAttribute("aria-label", lang === "zh" ? "Language: switch to English" : "Language: 切换到中文");
     }
     var ev;
     try { ev = new CustomEvent("at-lang-change", { detail: { lang: lang } }); }
