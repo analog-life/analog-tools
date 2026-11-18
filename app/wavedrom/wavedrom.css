@@ -84,10 +84,9 @@
   overflow: auto;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .wd-preview svg { max-width: none; }
-.wd-preview > div { margin: auto; }
 
 @media (max-width: 820px) {
   .wd-main { padding: 0 12px 6px; }
