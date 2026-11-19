@@ -8,14 +8,14 @@
 
 源码 `source/schematic-editor` 已在当前机器完成首次构建、类型检查、单元测试与浏览器冒烟，基线记录如下。站点 `app/schematic/` **尚未替换**：本次只记录基线，R1 发布时再同步 `assets/` 与 `index.html` 的 hash 引用。
 
-当前构建产物与线上 0.1.0 产物的差异集中在主 JS 与公式编辑器 chunk；CSS、analysis worker 逐字节一致。
+线上登记版本为 0.1.1（维护者确认），但当前部署包仍是旧构建；本次构建与部署包的差异集中在主 JS 与公式编辑器 chunk，CSS、analysis worker 逐字节一致。
 
 ## 2. 环境
 
 | 项 | 值 |
 |---|---|
 | 工作区 | `D:\AI程序设计\analog-tools` |
-| 主仓库 | `3f6baf0`（`main`，未配置 remote） |
+| 主仓库 | `main`（本地提交，推送状态以 git 为准） |
 | 源码仓库 | `e19ca1f`（`main`，跟踪 `upstream/main`，工作区干净） |
 | 操作系统 | Windows |
 | Node | `v24.21.0`（DSH 运行时自带） |
@@ -83,7 +83,7 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 | `LICENSE` | 1068 | `962BD57BDB54D481` |
 | `THIRD_PARTY_LICENSES.txt` | 249625 | `AF1A8853C784C277` |
 
-### 5.1 与线上 0.1.0 产物的差异
+### 5.1 与当前部署包的差异
 
 | 项 | 线上 | 本次构建 | 结论 |
 |---|---|---|---|
@@ -93,7 +93,7 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 | 公式编辑器 chunk | 298,643 B | 294,225 B | −4,418 B，hash 变化 |
 | 许可文本 | 254,972 B | 249,625 B | 上游 0.1.1 的依赖闭包不同 |
 
-差异来自源码 `0.1.1` 与线上登记的 `0.1.0` 不同步。R1 发布前应先确认这些差异是否都来自上游升级，而不是本地遗漏。
+线上登记已对齐到 `0.1.1`，但部署包仍是旧构建；差异可能来自上游升级、站点定制或构建参数。R1 发布前需逐项确认，不能默认都是上游变更。
 
 ## 6. 构建注意事项
 
@@ -113,5 +113,5 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 
 ## 8. 待决
 
-- 主仓库未配置 remote；`analog-life/analog-tools`、`analog-life/GmKing-schematic-editor` 在 GitHub 上均不存在（404），文档目前只提交在本地。推送目标需确认。
-- 站点是否在 R1 发布时一并替换为 0.1.1 基线，需在开始 R1 前确认。
+- 远程仓库已建立：`analog-tools` 存放主站代码，`GmKing-schematic-editor` 存放源码 fork；remote 配置与推送状态以 git 为准，不在本文档记录。
+- 站点部署包与 0.1.1 源码构建仍有差异；R1 发布时是否需要一并替换并对拍，需在开始 R1 前确认。

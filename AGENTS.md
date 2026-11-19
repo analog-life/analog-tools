@@ -47,7 +47,7 @@
 | 组件 | 版本 | 许可 | 位置 |
 |---|---|---|---|
 | WaveDrom | 3.8.0 | MIT © 2011-2026 Aliaksei Chapyzhenka | `app/wavedrom/vendor/` |
-| GmKing Schematic Editor | 0.1.0 | MIT © 2026 RarityBrown | `app/schematic/`（含 LICENSE 与 THIRD_PARTY_LICENSES.txt） |
+| GmKing Schematic Editor | 0.1.1 | MIT © 2026 RarityBrown | `app/schematic/`（含 LICENSE 与 THIRD_PARTY_LICENSES.txt） |
 | JointJS | 4.2.4 | MPL-2.0 | 已打包进 `app/schematic/assets/` |
 | MathJax | 4.1.3 | Apache-2.0 | `app/schematic/vendor/mathjax/` |
 

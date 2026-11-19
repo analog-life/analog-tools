@@ -293,7 +293,7 @@ R2 把 `Netlist` 和 `Diagnostics` 填满；TB（R5）不新增右栏视图，�
 - 源码改动在 `source/schematic-editor`，构建 `build:lib` + `build:web`，把 `apps/web/dist/assets` 同步到 `app/schematic/assets`，并更新 `app/schematic/index.html` 的 hash 引用。
 - 每次发布必须同步：`manual.html`、`schematic.css`、`schematic-i18n.js`、`THIRD_PARTY_LICENSES.txt`（如有新依赖）。
 - 发布前跑：typecheck、单测（当前 153 个测试文件）、浏览器冒烟、375px/深色/导出回归。
-- 先在本地把 `npm ci` 与构建跑通；当前工作区没有 `node_modules`/`dist`，源码 README 记录 0.1.1、站点登记 0.1.0，重建前先对拍差异。
+- 先在本地把 `npm ci` 与构建跑通；源码版本为 0.1.1，站点登记已对齐为 0.1.1，但部署包仍是旧构建，重建前先对拍差异。
 
 ### 6.3 文档 schema 与迁移
 
