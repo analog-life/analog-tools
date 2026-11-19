@@ -1,27 +1,39 @@
 # Phase 0 构建/发布基线
 
-状态：Blocked（站点产物基线已记录，源码构建未执行）· 2026-11-19
+状态：Done（构建、单测、浏览器冒烟已跑通）· 2026-11-19
 
 关联：[upgrade-plan.md](upgrade-plan.md)（6.2 构建与发布）
 
 ## 1. 结论
 
-站点产物（`app/schematic/`）的基线已记录；源码构建未能开始：当前工作区没有可用的 `npm`，且出站 HTTPS 不可用，`npm ci` 无法执行。需要在一台有 `npm` 与网络（或已备好离线依赖）的机器上完成首次构建，并把结果回填到本文件。
+源码 `source/schematic-editor` 已在当前机器完成首次构建、类型检查、单元测试与浏览器冒烟，基线记录如下。站点 `app/schematic/` **尚未替换**：本次只记录基线，R1 发布时再同步 `assets/` 与 `index.html` 的 hash 引用。
+
+当前构建产物与线上 0.1.0 产物的差异集中在主 JS 与公式编辑器 chunk；CSS、analysis worker 逐字节一致。
 
 ## 2. 环境
 
 | 项 | 值 |
 |---|---|
 | 工作区 | `D:\AI程序设计\analog-tools` |
-| 主仓库 | `bb4ab0d`（`main`，未配置 remote） |
+| 主仓库 | `3f6baf0`（`main`，未配置 remote） |
 | 源码仓库 | `e19ca1f`（`main`，跟踪 `upstream/main`，工作区干净） |
 | 操作系统 | Windows |
-| Node | `v24.21.0`（DSH 运行时自带，仅 `node.exe`，未带 `npm`） |
-| npm | 不可用：PATH 无、DSH 运行时无、`Program Files`/`AppData` 未找到 |
-| pnpm | 可用（DSH 运行时自带） |
-| pnpm store | 空（`D:\AI程序设计\analog-tools\.pnpm-store` 不存在） |
-| npm cache | `C:\Users\hydro\AppData\Local\npm-cache` 仅 7 个文件，无包内容 |
-| 网络 | DNS 正常；`registry.npmjs.org:443`、`github.com:443` TCP 可连；TLS 握手失败（`SEC_E_NO_CREDENTIALS` / 连接被重置）；无本地代理端口（7890/1080/8080 等均未监听） |
+| Node | `v24.21.0`（DSH 运行时自带） |
+| npm | `12.2.3`，从 registry 下载到 `C:\Users\hydro\npm-bootstrap`，通过 `npm.cmd` shim 使用 |
+| 网络 | 沙箱内不可用；完全访问下 `registry.npmjs.org` 与 `github.com` 均可达 |
+| 临时目录 | 构建时 `TEMP`/`TMP` 指向工作区内目录，避免 esbuild 临时文件删除被拒 |
+
+### 2.1 npm 引导方式
+
+沙箱内没有 npm，且受限进程无法完成 TLS 握手。本次在完全访问下从 registry 下载 npm CLI：
+
+```powershell
+# 下载并解压 npm 到 C:\Users\hydro\npm-bootstrap
+# 生成 bin\npm.cmd、bin\npx.cmd，指向 DSH 运行时的 node.exe
+$env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
+```
+
+这不是仓库的一部分，只用于本机构建；CI 或换机时应使用正式安装的 Node + npm。
 
 ## 3. 站点产物基线（构建前）
 
@@ -45,47 +57,61 @@
 
 `app/schematic/assets/` 共 4 个文件，2.3 MB。
 
-## 4. 源码基线
+## 4. 本次构建结果
 
-| 项 | 值 |
-|---|---|
-| 版本 | 源码 README 记录 `0.1.1`；站点登记 `0.1.0`（重建前需对拍差异） |
-| `package-lock.json` SHA-256 | `767DF37066B291844CA0B1E70B565A7E8353BA19FB55F779612D97604895A947` |
-| 测试文件 | 153 个（`packages/schematic/tests`） |
-| 源文件 | 212 个（`packages/schematic/src` 的 `.ts`/`.css`） |
-| `node_modules` | 不存在 |
-| `packages/schematic/dist` | 不存在 |
-| `apps/web/dist` | 不存在 |
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 安装依赖 | `npm ci` | 262 packages，8s；npm 12 阻止了 2 个 install script（esbuild postinstall），但平台二进制包可用，构建正常 |
+| 类型检查 | `npm run typecheck` | 退出码 0 |
+| 单元测试（schematic） | `npm test` 第一阶段 | 153 个测试文件：152 passed / 1 skipped；1809 个测试：1807 passed / 2 skipped；32.9s |
+| 单元测试（obsidian） | `npm test` 第二阶段 | 9 个文件、69 个测试全部通过；5.9s |
+| 库构建 | `npm run build:lib` | 成功，生成 ESM、声明、样式、analysis worker 与许可文本 |
+| Web 构建 | `npm run build:web` | 成功；Vite 7.3.6，1095 modules，7.6s |
+| 浏览器冒烟 | `npm run test:browser` | 退出码 0；vsource、note-colors、disabled-pins、schematic-web 四组通过 |
 
-## 5. 已尝试的步骤
+## 5. 构建产物清单
 
-1. `npm ci`：`npm` 不在 PATH，DSH 运行时也只有 `node.exe`。
-2. 查找 npm：`C:\Program Files\nodejs`、`C:\Program Files (x86)\nodejs`、`%APPDATA%\npm`、DSH 运行时、`AppData\Local\Programs` 均无 `npm-cli.js` / `npm.cmd`。
-3. 离线安装：pnpm store 为空，npm cache 无包内容，无法 offline install。
-4. 网络：`Test-NetConnection` 对 `registry.npmjs.org:443` 与 `github.com:443` 返回可达，但 `curl`/`Invoke-WebRequest`/`git ls-remote` 的 TLS 握手均失败；未发现本地代理。
+`source/schematic-editor/apps/web/dist/`：
 
-## 6. 下一步
+| 文件 | 字节 | SHA-256（前 16 位） |
+|---|---:|---|
+| `assets/analysis.worker-DD1etQJA.js` | 514783 | `BA635AC738E7E7BF` |
+| `assets/formulaSourceEditor-CG1EbUjc.js` | 294225 | `A36D36CE85C42817` |
+| `assets/index-Bs3Esb1t.js` | 1625550 | `0C71826ABA4AC35D` |
+| `assets/index-Dycg_2g4.css` | 42061 | `CD085C1EDE6FDBA1` |
+| `index.html` | 4153 | `6D9098FBB0BE5DC8` |
+| `LICENSE` | 1068 | `962BD57BDB54D481` |
+| `THIRD_PARTY_LICENSES.txt` | 249625 | `AF1A8853C784C277` |
 
-在具备 `npm` 与网络（或离线依赖）的机器上执行，并把输出回填到本文件：
+### 5.1 与线上 0.1.0 产物的差异
 
-```powershell
-cd source/schematic-editor
-npm ci
-npm run typecheck
-npm test
-npm run build:lib
-npm run build:web
-```
+| 项 | 线上 | 本次构建 | 结论 |
+|---|---|---|---|
+| analysis worker | `BA635AC7…` | `BA635AC7…` | 逐字节一致 |
+| 编辑器 CSS | `CD085C1E…` | `CD085C1E…` | 逐字节一致 |
+| 主 JS | 1,586,433 B | 1,625,550 B | +39,117 B（+2.5%），hash 变化 |
+| 公式编辑器 chunk | 298,643 B | 294,225 B | −4,418 B，hash 变化 |
+| 许可文本 | 254,972 B | 249,625 B | 上游 0.1.1 的依赖闭包不同 |
 
-随后：
+差异来自源码 `0.1.1` 与线上登记的 `0.1.0` 不同步。R1 发布前应先确认这些差异是否都来自上游升级，而不是本地遗漏。
 
-1. 记录 `apps/web/dist/assets` 的文件清单与 SHA-256。
-2. 与第 3 节的站点产物对比，确认上游 `0.1.0 → 0.1.1` 的差异范围。
-3. 更新 `app/schematic/index.html` 的 hash 引用，同步 `assets/`。
-4. 跑 375px / 768px / 1080px、深色模式、SVG/PNG 导出与 JSON 往返冒烟。
-5. 把“构建后清单指纹”与测试结果补进本文件。
+## 6. 构建注意事项
 
-## 7. 待决
+1. **临时目录**：`TEMP`/`TMP` 必须指向工作区内目录（例如 `.tmp-build`）。指向用户临时目录时，esbuild 服务删除临时文件会报 `Access is denied`，`vite build` 失败。
+2. **npm script 链**：根脚本会再次调用 `npm`，因此 PATH 里必须有 `npm` 与 `node`；只设置 `NODE` 路径不够。
+3. **构建顺序**：先 `build:lib` 再 `build:web`。Web 构建的 `closeBundle` 会从 `packages/schematic/dist/` 复制 `LICENSE`，库未构建时会 `ENOENT`。
+4. **npm 12 的 install-scripts 策略**：esbuild 的 postinstall 被阻止，但 `@esbuild/win32-x64` 可选依赖提供了二进制，当前不受影响。为可复现，建议 CI 固定 npm 10/11，或在 npm 12 下显式批准 `esbuild` 的安装脚本。
+5. **站点 `index.html` 不要用构建产物覆盖**：`dist/index.html` 是 Vite 默认壳（4,153 B），站点使用的是带页头/页脚/主题脚本的自定义 `index.html`（6,001 B）。发布时只同步 `assets/` 并更新其中的 hash 引用。
 
-- 构建环境：本机安装 Node + npm 并恢复网络，或在另一台机器构建后把 `dist` 带回来。
-- 主仓库未配置 remote，文档与基线的推送目标待确认。
+## 7. 发布前仍需
+
+- 用构建产物替换 `app/schematic/assets/`，更新 `app/schematic/index.html` 中 `index-*.js` 与 `index-*.css` 的引用。
+- 同步 `manual.html`、`schematic.css`、`schematic-i18n.js`（R1 起新 UI 走 key，不再扩精确匹配表）。
+- 跑 375px / 768px / 1080px、深色模式、SVG/PNG 导出与 JSON 往返检查。
+- 记录“构建后清单指纹”，与本文件的第 3 节对比。
+- 每次发布更新 `outputs/` 压缩包。
+
+## 8. 待决
+
+- 主仓库未配置 remote；`analog-life/analog-tools`、`analog-life/GmKing-schematic-editor` 在 GitHub 上均不存在（404），文档目前只提交在本地。推送目标需确认。
+- 站点是否在 R1 发布时一并替换为 0.1.1 基线，需在开始 R1 前确认。
