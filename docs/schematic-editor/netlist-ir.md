@@ -1,0 +1,448 @@
+# 结构化网表与网表 IR
+
+状态：Draft 0.1 · 2026-11-19
+关联：[upgrade-plan.md](upgrade-plan.md)（R2）、[sheet-hierarchy.md](sheet-hierarchy.md)（R4）、[agent-transaction.md](agent-transaction.md)（R6）
+
+## 1. 目的与边界
+
+本规格定义 **结构网表（structural netlist）**：把原理图的电气事实转换成确定性的 SPICE 或 Spectre 文本。
+
+结构网表只包含：
+
+- 子电路定义（`.subckt` / `subckt`）
+- 器件实例与连接
+- 器件参数（`w`、`l`、`m`、`nf` 等）
+- 端口顺序
+
+结构网表**不包含**：
+
+- `.include` / `.lib` / `include`
+- 模型卡（`.model`）
+- 分析语句（`.op`、`.ac`、`.tran` 等）
+- 激励源之外的仿真设置
+- `.end`
+- 任何坐标、颜色、选择、视图、图层信息
+
+这些属于 R5 的 **simulation deck（仿真 deck）**。分开的原因：
+
+1. 结构网表可以安全地被复制、比较、版本管理，不依赖 PDK 安装路径。
+2. SPICE 和 Spectre 共用一套 IR，只换 printer。
+3. TB 生成 deck 时再拼 include、corner、分析、`.end`，不会把“设计”与“仿真设置”混在一起。
+4. Agent 读写的是结构，不会误改仿真环境。
+
+## 2. 流程
+
+```
+SchematicDocument / Project
+        │
+        ▼
+  电气解析（connectivity / net resolution）
+        │
+        ▼
+     Netlist IR（纯数据，确定）
+        │
+        ├── SpicePrinter  ──►  .sp / .cir 文本
+        └── SpectrePrinter ──►  .scs 文本
+
+（R5）TB 配置 + PDK deck 配置
+        │
+        ▼
+   SimulationDeck（在结构网表之上拼装）
+```
+
+IR 是唯一电气事实；printer 是纯函数，不读 DOM、不读文件、不查 PDK。
+
+## 3. IR 形状
+
+```ts
+interface NetlistDesign {
+  top: string;                    // 顶层 subckt 名
+  subckts: NetlistSubckt[];       // 依赖在前，顶层在后
+  diagnostics: NetlistDiagnostic[];
+}
+
+interface NetlistSubckt {
+  name: string;                   // ASCII，大小写不敏感唯一
+  ports: string[];                // 顺序固定，来自 SheetPort.order
+  instances: NetlistInstance[];
+}
+
+interface NetlistInstance {
+  ref: string;                    // 原理图位号，如 M1 / R2 / X3
+  master: string;                 // 模型名或被调 subckt 名
+  kind: "primitive" | "subckt";
+  nodes: string[];                // 已解析的网络名，顺序由器件定义决定
+  params: Record<string, string>; // 原样字符串，不在这里求值
+}
+```
+
+IR 中不出现：`format`、`include`、`analysis`、`x/y`、`color`、`selected`、`view`。
+
+`format` 是 printer 的入参，不是 IR 的字段；这样同一份 IR 可以分别打印两次做一致性测试。
+
+## 4. 规范化规则
+
+### 4.1 网络命名
+
+优先级从高到低：
+
+1. 子图端口名（R4；对应 subckt 的 formal port）。
+2. 网络标签（Net Label）声明的名字。
+3. 全局网络：`0`，以及项目声明的 `globalNets`（R4，默认 `["0"]`）。
+4. 其余未命名网络按**稳定遍历**生成 `net0`、`net1`……：
+   - 组件按文档顺序（`components` 数组顺序）；
+   - 每个组件的引脚按 `ComponentDef.pins` 顺序；
+   - 第一次遇到该网络时分配下一个编号。
+   - 不按坐标排序，避免移动器件改变网表。
+
+### 4.2 名称合法性
+
+- 必须匹配 `[A-Za-z_][A-Za-z0-9_]*`；不允许空格、`+`、`-`、`.`、`:`、中文。
+- 大小写不敏感唯一；冲突是错误，不自动改名（自动改名会让标签与网表脱节）。
+- 以数字开头的名字加前缀 `n_`，并在诊断里警告。
+- 保留字（`0`、`gnd`、`vdd`、`vss`、`subckt`、`ends`、`model`、`include`、`lib`、`param`、`options`、`end`）按方言处理；与端口/实例名冲突时报错。
+
+### 4.3 器件与网络
+
+- 单端 `gnd` 符号：其引脚并入 `0`；不生成实例。
+- 单端 `vdd` 符号：其引脚并入 `VDD`（或它的标签名）；不生成实例。
+- `annotation`、`note`、图形（R3）不参与网表。
+- 每个实例的每个引脚必须有网络；悬空引脚是错误 `FLOATING_PIN`。
+- 只有一个引脚的网络：警告 `SINGLE_PIN_NET`；不阻塞（探针、测试点可能合法）。
+- 位号在同一子图内必须唯一；跨子图可以重复，因为作用域不同。
+
+### 4.4 数值
+
+- 参数保留用户输入的字符串（`1k`、`0.15u`、`2.5p`），printer 原样输出；不在 IR 里做数值归一化。
+- 必须用现有 `engineeringUnits` 做可解析性校验；解析失败是错误 `INVALID_VALUE`。
+- sky130 的 `w`/`l` 必须带单位或为纯数字（按米解释）；缺失是错误。
+- `m`、`nf` 缺省为 `1`；如果用户显式写空字符串，按缺省处理并在诊断里提示。
+
+## 5. 器件支持矩阵（v1）
+
+| 原理图类型 | SPICE | Spectre | sky130 | 说明 |
+|---|---|---|---|---|
+| R / C / L | 是 | 是 | 理想 | 用原生 `R/C/L`；物理模型后续 |
+| 独立电压源 V | 是 | 是 | 理想 | DC / SIN / PULSE / EXP / PWL；见 5.2 |
+| 独立电流源 I | 是 | 是 | 理想 | 同上 |
+| NMOS / PMOS | 是 | 是 | 是 | 4 端；`w/l/m/nf`；B 必须连接 |
+| 二极管 D | 后续 | 后续 | 后续 | v1 报 `UNSUPPORTED_DEVICE` |
+| NPN / PNP | 后续 | 后续 | 后续 | v1 报 `UNSUPPORTED_DEVICE` |
+| 开关 / SPNT / 传输门 | 否 | 否 | 否 | 诊断 |
+| 逻辑门 / DFF / 缓冲器 | 否 | 否 | 否 | 诊断；不映射标准单元 |
+| ADC / DAC / 比较器 / 行为块 | 否 | 否 | 否 | 诊断 |
+| iprobe | 是 | 是 | 理想 0V 源 | 用于测电流 |
+| diffProbe | 否 | 否 | 否 | 诊断；后续用 `save` 表达式 |
+| gnd / vdd 符号 | 是 | 是 | 全局 | 不生成实例 |
+
+### 5.1 实例名前缀
+
+- SPICE：sky130 MOS 是 subckt 调用，实例名必须是 `X` 开头。UI 显示 `M1`，SPICE 输出 `XM1`。映射规则：若 ref 已是 `X` 开头则保留，否则加 `X`。
+- SPICE：普通 `R/C/L/V/I/D` 保留原前缀；如果用户把电阻命名成 `M1`，报 `INVALID_REF_PREFIX`，不自动改。
+- Spectre：subckt 调用不要求 `X`，保留 `M1`；原生器件保留原前缀。
+- 这处差异必须在 UI 的网表预览里可见，不能只在文档里说明。
+
+### 5.2 源波形
+
+| 变体 | SPICE | Spectre |
+|---|---|---|
+| dc | `DC 1` | `dc=1` |
+| sine | `SIN(vo va freq td theta)` | `sine dc=vo ampl=va freq=freq` |
+| pulse | `PULSE(v1 v2 td tr tf pw per)` | `pulse val0=v1 val1=v2 delay=td rise=tr fall=tf width=pw period=per` |
+| exp | `EXP(v1 v2 td1 tau1 td2 tau2)` | `exp val0=...` 按字段映射 |
+| pwl | `PWL(t1 v1 t2 v2 ...)` | `pwl (t1 v1 t2 v2 ...)` |
+| noise / bit / ramp | 诊断 `UNSUPPORTED_SOURCE` | 同左 |
+
+字段名以现有 `voltageSourceModel` 的 `vsource:*` 为准；printer 只做语法映射，不做物理推导。
+
+### 5.3 MOS 参数键
+
+MOS 的尺寸参数存放在 `ComponentInstance.values`，使用固定键名：
+
+| 键 | 含义 | 默认 | 必填（sky130） |
+|---|---|---|---|
+| `mos:w` | 沟道宽度 | 无 | 是 |
+| `mos:l` | 沟道长度 | 无 | 是 |
+| `mos:m` | 并联倍数 | `1` | 否 |
+| `mos:nf` | 指状数 | `1` | 否 |
+
+- 属性面板在 MOS 选中时显示这四项；单位按工程值输入（`1u`、`0.15u`）。
+- 导出时把键映射为 profile 的参数名（sky130：`w/l/m/nf`），不直接把 `mos:w` 写进网表。
+- 3 端 MOS 变体（没有 B 引脚）不能用于 sky130 导出：报 `BULK_UNCONNECTED`，并提示切换到 4 端变体或连接 B。
+- 4 端变体的 B 必须连接到网络；不默认接地。
+- 符号视图（`variantId`）只影响画法，不影响网表；网表按引脚角色取值，不按变体名。
+- 输出规则：`w`/`l` 必须输出；`m`/`nf` 仅在用户显式设置且不是默认 `1` 时输出，避免每行都带默认值。
+
+## 6. sky130 profile
+
+v1 只交付 `sky130` 一个 process；`abstract`、`ihp-sg13g2`、`gf180mcu` 只留接口，不实现。
+
+```jsonc
+{
+  "id": "sky130",
+  "label": "SkyWater SKY130",
+  "devices": {
+    "nmos": {
+      "master": "sky130_fd_pr__nfet_01v8",
+      "terminals": ["d", "g", "s", "b"],
+      "params": { "w": "w", "l": "l", "m": "m", "nf": "nf" },
+      "required": ["w", "l"]
+    },
+    "pmos": {
+      "master": "sky130_fd_pr__pfet_01v8",
+      "terminals": ["d", "g", "s", "b"],
+      "params": { "w": "w", "l": "l", "m": "m", "nf": "nf" },
+      "required": ["w", "l"]
+    }
+  },
+  "deck": {
+    "spice": {
+      "lib": ".lib \"$SKY130/libs.tech/ngspice/sky130.lib.spice\" {corner}"
+    },
+    "spectre": {
+      "include": "include \"$SKY130/libs.tech/spectre/sky130.lib.scs\" section={corner}"
+    }
+  },
+  "corners": ["tt", "ff", "ss", "fs", "sf"]
+}
+```
+
+说明：
+
+- `deck` 只给 R5 用，printer v1 不读它。
+- `$SKY130` 是用户环境变量/路径占位符，不打包 PDK，不猜测安装位置。
+- Spectre 的模型库是否随本地 sky130 安装提供，需要实测；如果不可用，`include` 路径必须可配置，并在 deck 里给出明确错误。
+- 模型名只做映射，不做 PDK 搜索。用户改 profile 即可换 device flavor（`_lvt`、`_hvt` 等后续加）。
+- B 端规则：sky130 MOS 的 B 必须连接到网络。未连接是错误 `BULK_UNCONNECTED`，不默认接地（默认接地在部分电路里是错的）。
+- 理想 R/C/L 不映射到 `sky130_fd_pr__res_*` / `cap_*`；v1 保留原生器件。
+
+## 7. Printer 规则
+
+### 7.1 通用
+
+- printer 是纯函数：`print(design, options) => string`；不读文件、不查 PDK、不访问 DOM。
+- 输出使用 `\n`；结尾保留一个换行；不写时间戳、用户名、绝对路径。
+- 子电路依赖在前；同一层内按文档顺序；不排序实例名（排序会改变用户阅读顺序）。
+- 所有标识符在输出前做最终校验；有任一 error 时**不输出部分网表**，只返回诊断。
+- 注释只使用 ASCII，避免编码问题。
+
+### 7.2 SPICE
+
+```spice
+* analog-tools structural netlist
+.subckt amp IN OUT VDD VSS
+XM1 OUT IN VSS VSS sky130_fd_pr__nfet_01v8 w=1u l=0.15u m=1 nf=1
+R1 VDD OUT 1k
+.ends amp
+```
+
+- 第一行是标题注释；没有 `.end`。
+- 子电路调用：`X<ref> (nodes...) master params`；节点用空格分隔，不加括号。
+- 原生器件：`R<ref> n1 n2 value`、`C...`、`L...`、`V...`、`I...`。
+- 参数 `key=value`，按 profile 的参数顺序输出。
+- 长行用 `+` 续行；每行不超过 120 字符（可配置）。
+
+### 7.3 Spectre
+
+```spectre
+// analog-tools structural netlist
+simulator lang=spectre
+subckt amp (IN OUT VDD VSS)
+M1 (OUT IN VSS VSS) sky130_fd_pr__nfet_01v8 w=1u l=0.15u m=1 nf=1
+R1 (VDD OUT) resistor r=1k
+ends amp
+```
+
+- 第一行注释；`simulator lang=spectre`；没有 `include`、分析、`end`。
+- 子电路调用：`<ref> (nodes) master params`；节点带括号、逗号或空格分隔（按 Spectre 语法用空格）。
+- 原生器件：`R1 (n1 n2) resistor r=1k`、`C1 (...) capacitor c=1p`、`L1 (...) inductor l=1n`、`V1 (...) vsource dc=1`、`I1 (...) isource dc=1m`。
+- 参数 `key=value`；数值保留原字符串。
+
+## 8. 诊断
+
+```ts
+interface NetlistDiagnostic {
+  code: string;
+  severity: "error" | "warning" | "info";
+  message: string;
+  sheetId: string;
+  objectId?: string;
+  pinId?: string;
+  netName?: string;
+  opIndex?: number; // Agent transaction 用
+}
+```
+
+| 代码 | 级别 | 含义 | 是否阻塞 |
+|---|---|---|---|
+| `FLOATING_PIN` | error | 引脚没有网络 | 是 |
+| `SINGLE_PIN_NET` | warning | 只有一个引脚的网络 | 否 |
+| `DUPLICATE_REF` | error | 同一子图内位号重复 | 是 |
+| `INVALID_REF_PREFIX` | error | 位号前缀与器件类别不符 | 是 |
+| `UNSUPPORTED_DEVICE` | error | v1 不支持该器件 | 是 |
+| `UNSUPPORTED_SOURCE` | error | 源波形不支持 | 是 |
+| `MISSING_MODEL` | error | 没有可用的 master | 是 |
+| `MISSING_PARAM` | error | 缺少必填参数（如 w/l） | 是 |
+| `INVALID_VALUE` | error | 数值无法解析 | 是 |
+| `BULK_UNCONNECTED` | error | sky130 MOS 的 B 未连接 | 是 |
+| `NAME_COLLISION` | error | 网络/端口/实例名冲突 | 是 |
+| `GLOBAL_CONFLICT` | error | 全局网与端口/标签冲突 | 是 |
+| `NO_TOP_SHEET` | error | 没有顶层子图（R4） | 是 |
+| `CYCLE` | error | 子图循环引用（R4） | 是 |
+| `MISSING_SHEET` | error | 子图实例指向不存在的子图（R4） | 是 |
+| `UNBOUND_PORT` | error | 子图端口未连接（R4） | 是 |
+
+规则：
+
+- 任一 error → 没有 IR、没有文本；面板显示错误列表。
+- warning 不阻塞，但必须在面板和日志里可见。
+- 诊断必须带对象 id，用户点击后能选中并居中。
+- 诊断消息模板可翻译；代码不翻译。
+
+## 9. 右栏 Netlist 视图
+
+R1 只做壳，R2 填满：
+
+- 顶部：格式 `SPICE / Spectre` 分段按钮；工艺 `sky130` 下拉（v1 只有一项）；`Copy`、`Download`。
+- 状态：`Ready` / `Blocked (N errors)` / `Stale`；阻塞时按钮禁用。
+- 正文：等宽字体、行号、横向滚动；SPICE 标题行和 Spectre 语言行可见。
+- 诊断：视图底部或 `Diagnostics` 视图联动；点击错误选中对象。
+- 刷新：文档变化后 debounce 300ms 重算；视图关闭时暂停；重新打开时立即重算。
+- 状态记忆：格式、工艺、滚动位置、诊断过滤；格式/工艺存 `at-schematic-netlist`。
+- v1 只读，不允许在面板里改网表；不做 SPICE/Spectre 导入。
+
+## 10. 测试与验收
+
+- 单元测试：规范化命名、引脚顺序、实例前缀、参数校验、诊断。
+- Golden：RC 低通、MOS 共源、差分对；SPICE 与 Spectre 各一份；含 sky130 MOS。
+- 确定性：同一文档运行两次、重载后再运行，输出逐字节一致。
+- 负例：悬空引脚、重复位号、缺 W/L、B 未连接、逻辑门、未知源波形；必须阻塞且诊断可定位。
+- 不受显示影响：缩放、选择、图层、字体、跨线样式变化后网表不变。
+- 语法：在装有 ngspice 的机器上 `ngspice -b` 通过；Spectre 用本地 PDK 的 parser 或实际仿真验证（按环境）。
+- 性能：1000 个器件的文档，网表生成 < 500ms（开发机），UI 不卡顿。
+
+## 11. Simulation deck（R5）
+
+结构网表（第 1–8 节）是 deck 的一部分，但 deck 不等于结构网表。
+
+### 11.1 组成
+
+```
+SimulationDeck =
+  Header（注释 + 方言）
+  + PDK 环境（.lib / include，来自 profile 的 deck 配置）
+  + 参数（.param / parameters，可选）
+  + 温度（.temp / temp）
+  + TB 顶层（源、负载、DUT 实例）
+  + 分析（.op / .dc / .ac / .tran / .noise）
+  + 保存（.save / save）
+  + 结束（.end，按方言）
+  + 内联的 DUT 结构网表（v1 单文件；后续可拆分 include）
+```
+
+v1 默认输出**单文件**：先放 DUT 的 subckt，再放 TB top、环境、分析。这样用户下载一个文件就能跑，不依赖额外的 `dut.sp`。
+
+### 11.2 TB 元数据
+
+TB 是普通 Sheet，项目里用 `testbenches` 标记：
+
+```jsonc
+{
+  "id": "tb1",
+  "name": "ac_tb",
+  "sheetId": "s_tb",
+  "dut": { "sheetId": "s_amp", "ref": "XDUT" },
+  "supplies": { "vdd": "VDD", "vss": "VSS" },
+  "corner": "tt",
+  "temperature": "27",
+  "analyses": [
+    { "type": "op" },
+    { "type": "ac", "sweep": "dec", "points": 10, "start": "1", "stop": "1G" },
+    { "type": "tran", "step": "1p", "stop": "20n" }
+  ],
+  "saves": ["v(in)", "v(out)"]
+}
+```
+
+- `dut.sheetId` 指向被测子图；`dut.ref` 是 TB 图里 SheetBlock 的位号。
+- `supplies` 是 TB 图里电源网络的映射；缺省用 `VDD`/`VSS`。
+- `analyses` v1 只支持 op/dc/ac/tran/noise；参数用字符串，printer 原样输出。
+- `corner` 必须在 profile 的 `corners` 里；`temperature` 是字符串（单位摄氏度）。
+- TB 图本身仍然由用户画：源、负载、DUT 块、连线；元数据只描述“怎么仿真”。
+
+### 11.3 SPICE 示例
+
+```spice
+* ac_tb
+.lib "$SKY130/libs.tech/ngspice/sky130.lib.spice" tt
+.temp 27
+.param vdd=1.8
+
+.subckt amp IN OUT VDD VSS
+XM1 OUT IN VSS VSS sky130_fd_pr__nfet_01v8 w=1u l=0.15u
+R1 VDD OUT 1k
+.ends amp
+
+VDD VDD 0 1.8
+VIN IN 0 DC 0.9 AC 1
+XDUT IN OUT VDD 0 amp
+CLOAD OUT 0 10f
+
+.op
+.ac dec 10 1 1G
+.save v(IN) v(OUT)
+.end
+```
+
+### 11.4 Spectre 示例
+
+```spectre
+// ac_tb
+simulator lang=spectre
+include "$SKY130/libs.tech/spectre/sky130.lib.scs" section=tt
+parameters vdd=1.8
+
+subckt amp (IN OUT VDD VSS)
+M1 (OUT IN VSS VSS) sky130_fd_pr__nfet_01v8 w=1u l=0.15u
+R1 (VDD OUT) resistor r=1k
+ends amp
+
+VDD (VDD 0) vsource dc=1.8
+VIN (IN 0) vsource dc=0.9 mag=1
+XDUT (IN OUT VDD 0) amp
+CLOAD (OUT 0) capacitor c=10f
+
+op
+ac dec=10 start=1 stop=1G
+save v(IN) v(OUT)
+```
+
+- 方言细节（`ac` 参数写法、`save` 语法）由 printer 负责；TB 元数据不写语法。
+- 不把 `.model` 卡写进 deck；模型库由 `include`/`.lib` 提供。
+- 不在 deck 里做扫参、Monte Carlo、测量；这些是后续版本。
+
+### 11.5 校验
+
+Deck 生成前必须检查：
+
+- TB 图里存在 `dut.ref` 对应的 SheetBlock，且目标 `sheetId` 一致。
+- DUT 的所有端口在 TB 图里已连接。
+- 至少一个源；至少一个分析。
+- `corner` 在 profile 里；`temperature` 可解析。
+- `saves` 里的网络存在（或允许 `v(...)` 由仿真器解析，给 warning）。
+- 结构网表本身没有 error；有 error 时 deck 不生成。
+
+### 11.6 验收
+
+- sky130 反相器、差分对的 TB deck 能在 ngspice 跑通；Spectre 按本地 PDK 实测。
+- 单文件 deck 不依赖外部 `dut.sp`；include/lib 路径来自 profile，可被用户覆盖。
+- 修改 TB 图或 DUT 后重新生成，deck 与结构网表一致。
+- 浏览器内不执行仿真；不引入 wasm/服务端。
+
+## 12. 开放问题
+
+1. `vdd` 符号的默认网络名是 `VDD` 还是取标签？多个 `vdd` 是否自动并网？
+2. sky130 的 B 端是否允许“默认接 0 + 警告”作为可选设置？当前规格定为阻塞。
+3. 结构网表是否需要 `.global` 声明？v1 建议不输出，由 deck 决定。
+4. Spectre 的 subckt 实例名是否保留 `M1`，还是也加 `X`？当前按“保留原 ref”。
+5. 物理 R/C 映射是否进入 R2.5，还是等 v2？
