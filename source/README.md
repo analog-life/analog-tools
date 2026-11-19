@@ -6,7 +6,7 @@
 | 目录 | 上游仓库 | 当前分支 | 当前版本 |
 |---|---|---|---|
 | `wavedrom/` | <https://github.com/wavedrom/wavedrom> | `trunk` | 3.8.0（`5f44f7d`） |
-| `schematic-editor/` | <https://github.com/KingsAnalog/GmKing-schematic-editor> | `main` | 0.1.1（`e19ca1f`） |
+| `schematic-editor/` | <https://github.com/KingsAnalog/GmKing-schematic-editor> | `main` | 0.1.3（`ddbfb69`） |
 
 ## 已完成的初始化
 
@@ -16,7 +16,7 @@
 - `origin`：指向 `analog-life` 账号下的 fork 地址，作为后续推送目标：
   - `https://github.com/analog-life/wavedrom.git`
   - `https://github.com/analog-life/GmKing-schematic-editor.git`
-- 当前分支跟踪 `upstream` 对应分支，便于先同步官方更新。
+- `schematic-editor` 的分支已跟踪 `origin/main`，可直接推送；上游更新仍从 `upstream` 拉取。
 - 本地提交身份已设置为 `analog-life <absolutezero@stu.xjtu.edu.cn>`，可在各仓库内按需修改。
 - `remote.pushDefault` 已设为 `origin`。
 
