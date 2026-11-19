@@ -8,13 +8,14 @@
 
 | 文件 | 内容 | 状态 |
 |---|---|---|
+| [handoff.md](handoff.md) | **交接文档：当前代码事实、R1–R3 进度、构建/测试、已知坑与下一步** | Current |
 | [upgrade-plan.md](upgrade-plan.md) | 总体路线图、界面决策、验收标准、非目标、风险 | Draft |
 | [netlist-ir.md](netlist-ir.md) | 网表 IR、规范化、SPICE/Spectre printer、sky130 profile、诊断 | Draft |
 | [sheet-hierarchy.md](sheet-hierarchy.md) | 项目包 schema v2、子图/端口、导航、层级网表 | Draft |
 | [agent-transaction.md](agent-transaction.md) | 站外 Agent 的 snapshot/transaction 协议、站内审阅、本地 MCP | Draft |
 | [phase0-baseline.md](phase0-baseline.md) | 构建/发布基线：环境、构建与测试结果、产物指纹 | Done |
 
-建议阅读顺序：本文件 → `upgrade-plan.md` → 按需要读三份专项规格。
+建议阅读顺序：`handoff.md`（先了解代码现状）→ 本文件 → `upgrade-plan.md` → 按需要读三份专项规格。
 
 ## 规范用语
 
