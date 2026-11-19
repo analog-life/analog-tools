@@ -17,12 +17,12 @@
   - `https://github.com/analog-life/wavedrom.git`
   - `https://github.com/analog-life/GmKing-schematic-editor.git`
 - `schematic-editor` 的分支已跟踪 `origin/main`，可直接推送；上游更新仍从 `upstream` 拉取。
-- 本地提交身份已设置为 `analog-life <absolutezero@stu.xjtu.edu.cn>`，可在各仓库内按需修改。
+- 本地提交身份已设置为 `analog-life <51410082+analog-life@users.noreply.github.com>`，可在各仓库内按需修改。
 - `remote.pushDefault` 已设为 `origin`。
 
 ## 首次推送前：先创建 fork
 
-目前 `origin` 指向的 fork 还没有在 GitHub 上创建。首次推送前先登录 GitHub，分别打开：
+`schematic-editor` 的 fork 已创建：<https://github.com/analog-life/GmKing-schematic-editor>。`wavedrom` 的 fork 如尚未创建，按下面步骤创建：
 
 - <https://github.com/wavedrom/wavedrom/fork>
 - <https://github.com/KingsAnalog/GmKing-schematic-editor/fork>

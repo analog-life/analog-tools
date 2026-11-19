@@ -15,7 +15,7 @@
 | 项 | 值 |
 |---|---|
 | 工作区 | `D:\AI程序设计\analog-tools` |
-| 主仓库 | `main`（本地提交，推送状态以 git 为准） |
+| 主仓库 | `main`（跟踪 `origin/main`） |
 | 源码仓库 | `ddbfb69`（`main`，跟踪 `origin/main`，工作区干净） |
 | 操作系统 | Windows |
 | Node | `v24.21.0`（DSH 运行时自带） |
@@ -115,4 +115,4 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 
 - 远程仓库已建立：`analog-tools` 存放主站代码，`GmKing-schematic-editor` 存放源码 fork；remote 配置与推送状态以 git 为准。
 - 源码已更新到 0.1.3，站点仍登记 0.1.1；R1 以 0.1.3 为基线开发，站点在升级完成后同步。
-- GitHub 推送仍受私有邮箱限制：`hydrogen_peroxide@outlook.com` 也被判定为私密邮箱，需在账号设置中允许，或改用 noreply 地址。
+- 推送已改用 GitHub noreply 地址（`51410082+analog-life@users.noreply.github.com`），主站与源码仓库均已配置，不再使用个人邮箱。
