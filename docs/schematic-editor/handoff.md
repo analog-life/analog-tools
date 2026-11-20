@@ -2,7 +2,7 @@
 
 状态：R3 进行中 · 2026-11-20
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
-源码提交：`156c903` `实现 Layers 逐对象显隐与同层排序`（已推送 `origin/main`）
+已推送的源码基线：`5fb67eb` `新增折线与可调箭头并完善图形填充色板`（`origin/main`）
 
 这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
 
@@ -20,7 +20,7 @@
 当前最重要的约束：
 
 - **不要恢复上一版自定义自由图形实现。** `shapeModel.ts`、`shapeRenderer.ts`、`shapeSvgRenderer.ts` 已删除，也不再使用 `annotation + shape:*` 表示图形。
-- 自由图形现在直接使用 Library 已有的 `rectangle` / `triangle` 器件类型；当前只完成第一步。
+- 自由图形走 Library 的无引脚组件路径，当前有 `rectangle`、`triangle` 和 `polyline`。
 - 不要直接改站点 `app/schematic/`。源码和站点发布是待人工同步的两个区域。
 
 ---
@@ -110,7 +110,7 @@ scripts/              浏览器 smoke 测试
 - 顶层对象均可独立显隐并在同层相邻上下移动，隐藏对象仍参与排序，锁定层禁止这些编辑。对象树顶层优先的顺序同时驱动 JointJS 画布 z、note DOM 顺序和 SVG 导出顺序；显隐只影响显示，不删除对象或改变连接/网表。增量替换、导线几何刷新和变换后的 junction 重建也会保持隐藏状态与对象树顺序。
 - 逐对象状态保存于可选文档字段 `layerObjectStates[id].visible/z`，新 z 优先于器件旧 `values["layer:z"]`；空状态不写入 JSON，旧文档保持兼容。操作支持撤销/重做、localStorage 刷新恢复和文件 round-trip。引脚不参与排序，显隐沿用 `pinVisible:<pinId>`，仅组件原本允许编辑的引脚可切换。
 - wire/junction/label/note/pin 的任意图层分配尚未实现；复制/粘贴目前不继承 `layerObjectStates`，新对象使用默认显示状态。
-- **自由图形第一步：直接使用 Library 的 `rectangle` / `triangle`。**
+- **自由图形使用 Library 组件。** `Shapes` 分类包含两种闭合图形 `rectangle` / `triangle` 和开放图形 `polyline`，侧栏和 `i` 浏览器共用分类、标识和预览。
 
 #### R3 图形当前事实
 
@@ -136,15 +136,22 @@ scripts/              浏览器 smoke 测试
 - 两种纯图形的选择 frame 直接使用实际轮廓尺寸，不再经过普通器件的 `gridAlignedFrame` 网格外扩；`0.5 × 0.5` 矩形的蓝色虚线框与 10 × 10px 黑色轮廓一致，奇数格跨度的三角形在顶点半格重定位后，frame 也与新轮廓一致。
 - Library 的矩形/三角形预览增加 4px 安全边距并显式等比缩放，默认预览 `viewBox` 分别为 `-4 -4 88 48`、`-4 -4 88 88`，不再贴边裁切。
 - 创建的是普通 `ComponentInstance`，支持选择、移动、缩放、复制、删除、撤销/重做、图层归属。
-- Properties 保留 Layer、Cell、Color、Size，矩形另有 Width/Height；Color 下提供线宽、线形，矩形另有圆角；Size 后的分隔线下提供填充开关、填充颜色和填充透明度。三角形不显示 Width/Height/圆角，无填充时填充颜色和透明度控件禁用。
+- Properties 保留 Layer、Cell、Color、Size，矩形另有 Width/Height；Color 下提供线宽、线形，矩形另有圆角；Size 后的分隔线下提供填充开关、填充颜色和填充透明度。三角形不显示 Width/Height/圆角，无填充时填充颜色和透明度控件禁用。Fill color 复用 Color 的色板样式，白色默认色位于首格，原生自定义取色器位于最后一格。
 - 图形样式使用 `libraryShapeStrokeWidth`（默认 4）、`libraryShapeLineStyle`（`solid/dashed/dotted/dashDot`，默认 `solid`）、`libraryShapeCornerRadius`（默认 0，仅矩形）、`libraryShapeFillEnabled`（默认 `false`）、`libraryShapeFillColor`（默认 `#ffffff`）、`libraryShapeFillOpacity`（默认 1）六个文档值键；缺省键表示默认值。
 - 线形支持实线、虚线、点线和点划线；圆角路径钳制到短边一半，圆角为 0 时保持旧路径不变。JointJS 与纯 SVG 渲染共用相同样式语义，样式编辑支持历史撤销/重做、复制和 localStorage 持久化。
-- `rectangle` / `triangle` 仍被网表 `SKIP_TYPES` 跳过，不参与电气网表。
+- `rectangle` / `triangle` / `polyline` 由结构化网表的 `SKIP_TYPES` 跳过，均无电气引脚。
+
+##### 折线操作和存储
+
+- 在 Library 的 `Shapes` 选择 `polyline`，或按 `i` 后搜索 `polyline` / `折线`。点击 10px 网格添加顶点，至少两点后可按 Enter、双击终点或点击「完成折线」。Esc 取消当前草稿。相邻重复点不会计入，支持水平、垂直和斜线段，最多 256 个点。
+- 选中后用顶点手柄拖动单个点，其他点保持原位。绘制、一次拖动和箭头开关分别进入撤销历史。移动端选择折线后自动收起 Library 抽屉，可触摸画布并用按钮完成。
+- Properties 提供颜色、线宽、线形和尺寸。起点与终点可独立选择无、实心三角、实心 ASME、开放箭头、燕尾或实心菱形，各有小、中、大、特大四档。箭头默认关闭且预设为中号，服从折线颜色和端段方向。箭头尖端对齐原顶点，线身缩到箭头内部。实心 ASME 参考 Visio 第 13 号示意图和截图采用 3:2 轮廓。中号箭头长约为线宽的 6 倍，底宽约为线宽的 4 倍，细线和短端段会调整尺寸以保持可读性。JointJS、只读查看器和 SVG/PNG 导出共用这段几何。
+- `values.polylinePoints` 保存以包围盒中心为原点的 `[x, y]` 数组 JSON 字符串。`libraryShapeStartArrow` / `libraryShapeEndArrow` 保存类型，`libraryShapeStartArrowSize` / `libraryShapeEndArrowSize` 保存尺寸。旧文件的 `true` 和 `false` 分别读作实心三角和无箭头。折线作为 `shape` 进入 Layers 树。
 
 当前已知不足：
 
-- 只有矩形和三角形；折线、多边形、圆、圆弧尚未恢复/重做。
-- 尚无箭头属性；逐对象显隐和同层 z-order 已完成，但任意图层分配、更多图形类型等 R3 目标仍未完成。
+- 多边形、圆和圆弧待实现。
+- 任意图层分配、`plain/hop` 交叉显示和注释/标签字体覆盖待实现。
 
 #### 放置点击修复
 
@@ -207,8 +214,9 @@ scripts/              浏览器 smoke 测试
 | `layers.ts` | 图层默认值/规范化 |
 | `rectangleComponentModel.ts` | 纯矩形宽高、legacy pin 命令拒绝 |
 | `triangleComponentModel.ts` | 纯三角形顶点与尺寸 |
-| `libraryShapeGeometry.ts` | 矩形四顶点/三角形三顶点计算与共同吸附修正 |
-| `libraryShapeStyleModel.ts` | 图形描边、线形、圆角、填充的默认值、校验与 SVG 属性 |
+| `libraryShapeGeometry.ts` | 矩形、三角形、折线的轮廓顶点与共同吸附修正 |
+| `polylineComponentModel.ts` / `symbols/polylineSymbols.ts` | 折线局部坐标、顶点编辑、路径与箭头几何 |
+| `libraryShapeStyleModel.ts` | 图形描边、线形、圆角、填充和端点箭头的默认值与校验 |
 
 ### 网表
 
@@ -226,7 +234,7 @@ scripts/              浏览器 smoke 测试
 - 纯图形结构：`componentRenderer.ts` 的 `LibraryShapeElement`；catalog 定义层 pins 固定为空，markup 不含 text。
 - 轮廓与吸附：`libraryShapeGeometry.ts`；`view-geometry.ts`、`cellGeometryModel.ts`、`selectionMoveTransaction.ts` 和 `rectangleResizeSession.ts` 共用顶点修正。
 - 样式：`libraryShapeStyleModel.ts` 统一校验和生成 SVG 属性；`componentRenderer.ts`、`componentSvgRenderer.ts` 分别接入 JointJS 与纯 SVG 渲染。
-- 创建值：`rectangleWidthGrid` / `rectangleHeightGrid` / `triangleVertex:*`。
+- 创建值：`rectangleWidthGrid` / `rectangleHeightGrid` / `triangleVertex:*` / `polylinePoints`。
 - 放置 fallback：同文件 `placementPointerStart` 附近。
 
 ---
@@ -262,7 +270,9 @@ npm.cmd run build:web
 
 - schematic：162 个测试文件（161 通过 / 1 跳过）；1850 个测试（1848 通过 / 2 跳过）
 - obsidian：9 个测试文件 / 69 个测试通过
-- 本轮实际运行并通过：`typecheck`、`npm test`（含 `build:lib`）、`build:web`、`test:r3`、`test:r3:layers`
+- 基线已通过 `typecheck`、`npm test`（含 `build:lib`）、`build:web`、`test:r3`、`test:r3:layers`。
+
+折线工作区也已通过 `typecheck`、`build:web` 和全量单测。Schematic 1854 项通过、2 项跳过，Obsidian 69 项通过。折线、原有 Library 图形、Layers 和放置抖动的浏览器验收通过。
 
 ### 浏览器 smoke
 
@@ -272,6 +282,7 @@ npm.cmd run build:web
 npm.cmd run test:r1
 npm.cmd run test:r2
 npm.cmd run test:r3
+npm.cmd run test:r3:polyline
 npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
@@ -279,6 +290,7 @@ npm.cmd run test:placement
 - `test:r1`：Library、`i` 浏览器、放置、右栏、日志、持久化。
 - `test:r2`：网表、格式/工艺、诊断位置。
 - `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、四个顶点与四个边中点手柄可见、东边中点拖拽只增加宽度且对边与相邻边不移动、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄；覆盖描边线宽/线形/圆角/填充/透明度修改、撤销/重做、localStorage 保存与刷新恢复、三角形隐藏圆角，以及 375px 移动抽屉中的完整属性面板。
+- `test:r3:polyline` 检查 Library 和 `i` 的 Shapes 分类、折线吸附和预览、Enter/双击完成、Esc 取消、逐顶点拖动、首尾箭头样式和尺寸、撤销/重做、刷新恢复。在 375px 下还实测触屏完成、箭头属性控件边界及完成按钮的浅色/深色文字对比度。
 - `test:r3:layers`：完整对象类型、对象计数、器件引脚折叠、对象/引脚与画布选择同步、整层上下移动、隐藏层禁用对象选择；实际点击 component/wire/junction/label/note 的独立显隐，检查对象上下移后的树顺序、真实 graph cell z 与保存的整数状态，覆盖撤销/重做、锁定层控件禁用、localStorage 保存和页面刷新恢复；深色模式四处文字对比度均不低于 4.5:1，375px 移动抽屉无横向溢出。
 - `test:placement`：带 1–5px 鼠标抖动的单击放置，必须每次只创建一个器件。
 
@@ -315,7 +327,7 @@ npm.cmd run dev
    - 不要把 `apps/web/dist` 直接提交进源码仓库。
 
 6. **规格与代码不一致**
-   - R3 规格仍描述折线/多边形/顶点编辑等目标，当前代码只完成 Library 矩形/三角形第一步。
+   - R3 规格仍描述多边形、圆、圆弧等后续目标，当前代码已完成 Library 矩形、三角形与折线及其顶点编辑。
    - R2 也已超出旧规格的 sky130-only 范围（增加了 GF180/IHP/Custom），验收时以当前产品和代码为准。
 
 7. **逐对象状态依赖实际对象 ID**
@@ -330,17 +342,14 @@ npm.cmd run dev
 
 优先级建议：
 
-1. **继续补齐 R3 图形视觉能力**
-   - 按需求确认箭头等其余能力；逐对象 z-order 已由 Layers 面板提供。
-   - 为 Library 图形增加更明确的视觉标识（当前与器件同列）。
-2. **再决定后续图形**
-   - 若继续使用 Library 组件，需要为折线/多边形等新增 catalog 类型或明确新的组件模型。
-   - 不要恢复 `annotation + shape:*` 的旧路线。
-3. **R3 剩余独立项**
+1. **扩展 Library 图形**
+   - 复用折线的顶点数据和绘制交互接入多边形，保持闭合路径与填充语义。
+   - 分别补齐圆和圆弧的绘制、编辑和导出。
+2. **R3 剩余独立项**
    - Layers 下一小步：wire/junction/label/note/pin 的任意图层分配；同时明确复制/粘贴及几何重建时显示状态的迁移策略。
    - `plain/hop` 交叉显示。
    - 注释/标签字体覆盖。
-4. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
+3. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
 
 ---
 
@@ -355,6 +364,7 @@ cd source/schematic-editor
 npm.cmd run typecheck
 npm.cmd test
 npm.cmd run test:r3
+npm.cmd run test:r3:polyline
 npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
@@ -363,6 +373,7 @@ npm.cmd run test:placement
 
 - [ ] 工作区干净（或明确知道未提交改动属于谁）。
 - [ ] `test:r3` 能绘制矩形/三角形且无引线/文字。
+- [ ] `test:r3:polyline` 能绘制和编辑折线、独立切换首尾箭头，并在移动端完成绘制。
 - [ ] `test:placement` 通过，单击不会重复放置。
 - [ ] `app/schematic/` 未被误改。
 - [ ] 新改动有中文 commit，并已推送 `origin/main`。
