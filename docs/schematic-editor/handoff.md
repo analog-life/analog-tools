@@ -124,6 +124,7 @@ scripts/              浏览器 smoke 测试
 - 两种图形在定义层均无任何 pins，JointJS markup 不包含 text 节点，也不生成引脚小方框、中央文字或三角形顶点 `A/B/C` 标签；不是用 `opacity: 0` 隐藏。实际 DOM 只有轮廓和选择/缩放手柄。
 - 读取旧文档时会清除这两种图形的 legacy pin、label 和 pin visibility 字段；Properties 不再显示 Name、Show label 或引脚字段，矩形只保留 Width/Height。
 - 矩形：点击第一个格点，拖动/点击第二个点，拖动中显示虚线矩形，松开后创建。
+- 矩形选中后显示四个顶点和四个边中点手柄。上下边中点只调整高度，左右边中点只调整宽度，对边保持固定，垂直方向的鼠标位移不会改变另一维度；旋转矩形按局部坐标处理。边拖拽不吸附未改变的中心轴，避免属性生成的半格小矩形在拖边时发生 5px 连带跳动。
 - 三角形：依次点击三个格点，第三点完成后创建；放置第一个点后无连线，移动去放第二个点时只连接“第一点 → 当前点”，移动去放第三个点时保留“第一点 → 第二点”的已有边，并增加“第一点 → 当前点”和“第二点 → 当前点”，共三条独立线段；重合或零长度线段不会重复生成。
 - 从首次点击前开始，鼠标移动时实时显示当前吸附点的蓝色圆环；图形虚线预览与吸附标记共用同一坐标。
 - 创建图形的绘制点按 10px（一个可见画布格子）吸附，矩形拖动预览与最终尺寸均使用该步进；保存几何时仍以 20px 的 `SYMBOL_GRID_SIZE` 为单位，无引脚矩形允许 0.5 单位（10px）尺寸，已有图形的移动、缩放和顶点编辑步进不变。
@@ -132,13 +133,15 @@ scripts/              浏览器 smoke 测试
 - 两种纯图形的选择 frame 直接使用实际轮廓尺寸，不再经过普通器件的 `gridAlignedFrame` 网格外扩；`0.5 × 0.5` 矩形的蓝色虚线框与 10 × 10px 黑色轮廓一致，奇数格跨度的三角形在顶点半格重定位后，frame 也与新轮廓一致。
 - Library 的矩形/三角形预览增加 4px 安全边距并显式等比缩放，默认预览 `viewBox` 分别为 `-4 -4 88 48`、`-4 -4 88 88`，不再贴边裁切。
 - 创建的是普通 `ComponentInstance`，支持选择、移动、缩放、复制、删除、撤销/重做、图层归属。
+- Properties 保留 Layer、Cell、Color、Size，矩形另有 Width/Height；Color 下提供线宽、线形，矩形另有圆角；Size 后的分隔线下提供填充开关、填充颜色和填充透明度。三角形不显示 Width/Height/圆角，无填充时填充颜色和透明度控件禁用。
+- 图形样式使用 `libraryShapeStrokeWidth`（默认 4）、`libraryShapeLineStyle`（`solid/dashed/dotted/dashDot`，默认 `solid`）、`libraryShapeCornerRadius`（默认 0，仅矩形）、`libraryShapeFillEnabled`（默认 `false`）、`libraryShapeFillColor`（默认 `#ffffff`）、`libraryShapeFillOpacity`（默认 1）六个文档值键；缺省键表示默认值。
+- 线形支持实线、虚线、点线和点划线；圆角路径钳制到短边一半，圆角为 0 时保持旧路径不变。JointJS 与纯 SVG 渲染共用相同样式语义，样式编辑支持历史撤销/重做、复制和 localStorage 持久化。
 - `rectangle` / `triangle` 仍被网表 `SKIP_TYPES` 跳过，不参与电气网表。
 
 当前已知不足：
 
 - 只有矩形和三角形；折线、多边形、圆、圆弧尚未恢复/重做。
-- 没有独立的填充、描边颜色、线宽、虚线、箭头属性。
-- 旧实现中“图形”的顶点编辑、z-order 等能力目前由 Library 组件自身的 resize/图层机制部分承担，尚未完成 R3 目标。
+- 尚无箭头属性；旧实现中“图形”的 z-order 等能力目前由 Library 组件自身的图层机制部分承担，尚未完成 R3 目标。
 
 #### 放置点击修复
 
@@ -199,6 +202,7 @@ scripts/              浏览器 smoke 测试
 | `rectangleComponentModel.ts` | 纯矩形宽高、legacy pin 命令拒绝 |
 | `triangleComponentModel.ts` | 纯三角形顶点与尺寸 |
 | `libraryShapeGeometry.ts` | 矩形四顶点/三角形三顶点计算与共同吸附修正 |
+| `libraryShapeStyleModel.ts` | 图形描边、线形、圆角、填充的默认值、校验与 SVG 属性 |
 
 ### 网表
 
@@ -215,6 +219,7 @@ scripts/              浏览器 smoke 测试
 - 形状选择/绘制：`editor.ts` 中的 `beginLibraryShapeDraw`、`bindLibraryShapeDrawEvents`、`finishLibraryShapeDraw`。
 - 纯图形结构：`componentRenderer.ts` 的 `LibraryShapeElement`；catalog 定义层 pins 固定为空，markup 不含 text。
 - 轮廓与吸附：`libraryShapeGeometry.ts`；`view-geometry.ts`、`cellGeometryModel.ts`、`selectionMoveTransaction.ts` 和 `rectangleResizeSession.ts` 共用顶点修正。
+- 样式：`libraryShapeStyleModel.ts` 统一校验和生成 SVG 属性；`componentRenderer.ts`、`componentSvgRenderer.ts` 分别接入 JointJS 与纯 SVG 渲染。
 - 创建值：`rectangleWidthGrid` / `rectangleHeightGrid` / `triangleVertex:*`。
 - 放置 fallback：同文件 `placementPointerStart` 附近。
 
@@ -247,9 +252,9 @@ npm.cmd run build:web
 
 `npm test` 会先 `build:lib`，再跑 schematic 与 obsidian 测试。
 
-当前源码基线（`c13fd85`，已推送 `origin/main`）：
+当前工作区（基于 `c13fd85`，矩形边中点拖拽与本次图形样式修改尚未提交）：
 
-- schematic：158 个测试文件（157 通过 / 1 跳过）；1820 个测试（1818 通过 / 2 跳过）
+- schematic：160 个测试文件（159 通过 / 1 跳过）；1836 个测试（1834 通过 / 2 跳过）
 - obsidian：9 个测试文件 / 69 个测试通过
 - `typecheck`、`build:lib`、`build:web`、`test:r3`、`test:placement` 通过
 
@@ -266,7 +271,7 @@ npm.cmd run test:placement
 
 - `test:r1`：Library、`i` 浏览器、放置、右栏、日志、持久化。
 - `test:r2`：网表、格式/工艺、诊断位置。
-- `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄。
+- `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、四个顶点与四个边中点手柄可见、东边中点拖拽只增加宽度且对边与相邻边不移动、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄；覆盖描边线宽/线形/圆角/填充/透明度修改、撤销/重做、localStorage 保存与刷新恢复、三角形隐藏圆角，以及 375px 移动抽屉中的完整属性面板。
 - `test:placement`：带 1–5px 鼠标抖动的单击放置，必须每次只创建一个器件。
 
 手动开发：
@@ -313,8 +318,8 @@ npm.cmd run dev
 
 优先级建议：
 
-1. **确认 R3 图形第一步的后续视觉需求**
-   - 补充/确认填充、描边、线宽是否属于下一步。
+1. **继续补齐 R3 图形视觉能力**
+   - 按需求确认箭头、z-order 等其余能力。
    - 为 Library 图形增加更明确的视觉标识（当前与器件同列）。
 2. **再决定后续图形**
    - 若继续使用 Library 组件，需要为折线/多边形等新增 catalog 类型或明确新的组件模型。
