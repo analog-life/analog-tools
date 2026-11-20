@@ -2,7 +2,7 @@
 
 状态：R3 进行中 · 2026-11-20
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
-已推送的源码基线：`5e9e96f` `新增可塑形的三点贝塞尔弧线`（`origin/main`）
+已推送的源码基线：`52c6d14` `完善圆形、多边形和弧形首尾箭头`（`origin/main`）
 
 这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
 
@@ -110,7 +110,7 @@ scripts/              浏览器 smoke 测试
 - 顶层对象均可独立显隐并在同层相邻上下移动，隐藏对象仍参与排序，锁定层禁止这些编辑。对象树顶层优先的顺序同时驱动 JointJS 画布 z、note DOM 顺序和 SVG 导出顺序；显隐只影响显示，不删除对象或改变连接/网表。增量替换、导线几何刷新和变换后的 junction 重建也会保持隐藏状态与对象树顺序。
 - 逐对象状态保存于可选文档字段 `layerObjectStates[id].visible/z`，新 z 优先于器件旧 `values["layer:z"]`；空状态不写入 JSON，旧文档保持兼容。操作支持撤销/重做、localStorage 刷新恢复和文件 round-trip。引脚不参与排序，显隐沿用 `pinVisible:<pinId>`，仅组件原本允许编辑的引脚可切换。
 - wire/junction/label/note/pin 的任意图层分配尚未实现；复制/粘贴目前不继承 `layerObjectStates`，新对象使用默认显示状态。
-- **自由图形使用 Library 组件。** `Shapes` 分类包含两种闭合图形 `rectangle` / `triangle` 和开放图形 `polyline` / `arc`，侧栏和 `i` 浏览器共用分类、标识和预览。
+- **自由图形使用 Library 组件。** `Shapes` 分类包含闭合图形 `rectangle` / `triangle` / `circle` / `polygon` 和开放图形 `polyline` / `arc`，侧栏和 `i` 浏览器共用分类、标识和预览。
 
 #### R3 图形当前事实
 
@@ -139,7 +139,7 @@ scripts/              浏览器 smoke 测试
 - Properties 保留 Layer、Cell、Color、Size，矩形另有 Width/Height；Color 下提供线宽、线形，矩形另有圆角；Size 后的分隔线下提供填充开关、填充颜色和填充透明度。三角形不显示 Width/Height/圆角，无填充时填充颜色和透明度控件禁用。Fill color 复用 Color 的色板样式，白色默认色位于首格，原生自定义取色器位于最后一格。
 - 图形样式使用 `libraryShapeStrokeWidth`（默认 4）、`libraryShapeLineStyle`（`solid/dashed/dotted/dashDot`，默认 `solid`）、`libraryShapeCornerRadius`（默认 0，仅矩形）、`libraryShapeFillEnabled`（默认 `false`）、`libraryShapeFillColor`（默认 `#ffffff`）、`libraryShapeFillOpacity`（默认 1）六个文档值键；缺省键表示默认值。
 - 线形支持实线、虚线、点线和点划线；圆角路径钳制到短边一半，圆角为 0 时保持旧路径不变。JointJS 与纯 SVG 渲染共用相同样式语义，样式编辑支持历史撤销/重做、复制和 localStorage 持久化。
-- `rectangle` / `triangle` / `polyline` / `arc` 由结构化网表的 `SKIP_TYPES` 跳过，均无电气引脚。
+- Library 的六种图形由结构化网表的 `SKIP_TYPES` 跳过，均无电气引脚。
 
 ##### 折线操作和存储
 
@@ -151,12 +151,17 @@ scripts/              浏览器 smoke 测试
 ##### 弧形操作和存储
 
 - 在 Library 的 Shapes 选择 `arc`，也可在 `i` 浏览器搜索 `arc`、`弧形` 或 `圆弧`。依次点击左、右两个端点，再点击曲线经过的第三点。端点吸附到 10px 网格，第三点以 1px 步进放置和编辑。两端固定后起始预览为直线，随后随鼠标实时弯曲。三点共线可生成平直的弧形，第三点也可移到端点范围外。Esc 取消草稿。
-- 路径使用经过第三点的二次贝塞尔曲线。选中后可独立拖动圆形端点手柄和菱形弧上手柄，单次拖动可撤销。弧形可设置颜色、线宽、线形和尺寸，随活动图层保存。画布、查看器和导出使用相同的曲线路径。
-- `values.arcPoints` 保存 `[左端点, 右端点, 弧上第三点]` 的局部坐标，每个点用 `[x, y]` 数组表示，外层仍为组件值 JSON 字符串。旧弧形文件重载时沿用三个点，按新曲线规则绘制。
+- 路径使用经过第三点的二次贝塞尔曲线。选中后可独立拖动圆形端点手柄和菱形弧上手柄，单次拖动可撤销。弧形可设置颜色、线宽、线形和尺寸，随活动图层保存。属性面板沿用折线的首尾箭头样式与尺寸，默认无箭头。箭尖对齐原端点，方向由箭尖与曲线接合点决定。箭头按设定的尺寸和线宽绘制，只有端点间距不足时才限制箭头长度。线身保留接合点之间的原贝塞尔曲线，端部急弯时，同一样式和尺寸档位的两个箭头仍等大。画布、查看器和导出共用曲线和箭头路径。
+- `values.arcPoints` 保存 `[左端点, 右端点, 弧上第三点]` 的局部坐标，每个点用 `[x, y]` 数组表示，外层仍为组件值 JSON 字符串。旧弧形文件重载时沿用三个点，按新曲线规则绘制。箭头沿用折线的 `libraryShapeStartArrow` / `libraryShapeEndArrow` 和对应的尺寸键。
+
+##### 圆形和多边形操作与存储
+
+- 在 Library 的 Shapes 选择 `circle`。第一次点击确定圆心，移动指针实时预览，第二次点击确定半径。两个点按 10px 网格吸附，半径使用两点的实际距离。完成时立即显示上、右、下、左四个手柄，拖动时对边保持固定，每次只调整一个轴。文档用 `values.circleRadiusX` 和 `values.circleRadiusY` 保存两个半轴。
+- 选择 `polygon` 后逐个添加顶点。放置第二个顶点后，预览保留已绘制边并连接目标点与上一顶点和起点。至少三个不共线的顶点后，点击起点、双击终点、按 Enter 或点「完成多边形」闭合，Esc 取消。选中后可独立拖动顶点。最多可画 256 个顶点，`values.polygonPoints` 保存以包围盒中心为原点的有序局部坐标。
+- 两种图形沿用矩形和三角形的颜色、线宽、线形、尺寸与填充属性。填充颜色使用预设色板和自定义取色器。图形随活动图层保存，画布、查看器和导出使用相同的闭合路径。
 
 当前已知不足：
 
-- 多边形和圆待实现。
 - 任意图层分配、`plain/hop` 交叉显示和注释/标签字体覆盖待实现。
 
 #### 放置点击修复
@@ -221,8 +226,10 @@ scripts/              浏览器 smoke 测试
 | `rectangleComponentModel.ts` | 纯矩形宽高、legacy pin 命令拒绝 |
 | `triangleComponentModel.ts` | 纯三角形顶点与尺寸 |
 | `libraryShapeGeometry.ts` | 矩形、三角形、折线的轮廓顶点与共同吸附修正 |
-| `polylineComponentModel.ts` / `symbols/polylineSymbols.ts` | 折线局部坐标、顶点编辑、路径与箭头几何 |
+| `polylineComponentModel.ts` / `symbols/polylineSymbols.ts` | 折线局部坐标、顶点编辑和路径 |
+| `symbols/shapeArrowSymbols.ts` | 折线与弧形共用的箭头轮廓与尺寸 |
 | `arcComponentModel.ts` / `arcGeometry.ts` / `symbols/arcSymbols.ts` | 三点曲线的存储、贝塞尔几何、边界和 SVG 路径 |
+| `circleComponentModel.ts` / `polygonComponentModel.ts` / `symbols/closedShapeSymbols.ts` | 圆和椭圆的半轴、多边形顶点与闭合路径 |
 | `libraryShapeStyleModel.ts` | 图形描边、线形、圆角、填充和端点箭头的默认值与校验 |
 
 ### 网表
@@ -283,6 +290,8 @@ npm.cmd run build:web
 
 三点曲线已通过 `typecheck`、`build:web`、`test:r3:arc`、`test:r3:polyline`、`test:r3` 和全量单测。Schematic 1860 项通过、2 项跳过，Obsidian 69 项通过。
 
+`52c6d14` 已通过类型检查、Web 构建和浏览器验收，覆盖闭合图形、折线、弧形首尾箭头、急弯修复和 375px 触屏。Schematic 1872 项通过、2 项跳过，Obsidian 69 项通过。
+
 ### 浏览器 smoke
 
 需要 Chrome/Chromium/Edge。命令：
@@ -293,6 +302,7 @@ npm.cmd run test:r2
 npm.cmd run test:r3
 npm.cmd run test:r3:polyline
 npm.cmd run test:r3:arc
+npm.cmd run test:r3:closed-shapes
 npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
@@ -301,7 +311,8 @@ npm.cmd run test:placement
 - `test:r2`：网表、格式/工艺、诊断位置。
 - `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、四个顶点与四个边中点手柄可见、东边中点拖拽只增加宽度且对边与相邻边不移动、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄；覆盖描边线宽/线形/圆角/填充/透明度修改、撤销/重做、localStorage 保存与刷新恢复、三角形隐藏圆角，以及 375px 移动抽屉中的完整属性面板。
 - `test:r3:polyline` 检查 Library 和 `i` 的 Shapes 分类、折线吸附和预览、Enter/双击完成、Esc 取消、逐顶点拖动、首尾箭头样式和尺寸、撤销/重做、刷新恢复。在 375px 下还实测触屏完成、箭头属性控件边界及完成按钮的浅色/深色文字对比度。
-- `test:r3:arc` 检查三点成弧、预览与顶点对齐、弧上点跨越弦线并拖出端点范围、撤销重做、保存重载及 375px 深色触屏绘制。
+- `test:r3:arc` 检查三点成弧、预览与顶点对齐、弧上点跨越弦线并拖出端点范围、首尾箭头样式和尺寸、单侧急弯时两端箭头尺寸一致、撤销重做、保存重载，以及 375px 深色触屏绘制和属性操作。
+- `test:r3:closed-shapes` 检查圆形实时预览、四个手柄和单轴拉伸、多边形的动态闭合边、顶点编辑、填充、撤销、刷新恢复和 375px 深色触屏绘制。
 - `test:r3:layers`：完整对象类型、对象计数、器件引脚折叠、对象/引脚与画布选择同步、整层上下移动、隐藏层禁用对象选择；实际点击 component/wire/junction/label/note 的独立显隐，检查对象上下移后的树顺序、真实 graph cell z 与保存的整数状态，覆盖撤销/重做、锁定层控件禁用、localStorage 保存和页面刷新恢复；深色模式四处文字对比度均不低于 4.5:1，375px 移动抽屉无横向溢出。
 - `test:placement`：带 1–5px 鼠标抖动的单击放置，必须每次只创建一个器件。
 
@@ -338,7 +349,7 @@ npm.cmd run dev
    - 不要把 `apps/web/dist` 直接提交进源码仓库。
 
 6. **规格与代码不一致**
-   - R3 规格仍描述多边形和圆等后续目标，当前代码已完成 Library 矩形、三角形、折线和弧形。
+   - R3 的 Library 图形已完成矩形、三角形、折线、弧形、圆形和多边形。
    - R2 也已超出旧规格的 sky130-only 范围（增加了 GF180/IHP/Custom），验收时以当前产品和代码为准。
 
 7. **逐对象状态依赖实际对象 ID**
@@ -353,14 +364,11 @@ npm.cmd run dev
 
 优先级建议：
 
-1. **扩展 Library 图形**
-   - 复用折线的顶点数据和绘制交互接入多边形，保持闭合路径与填充语义。
-   - 补齐圆的绘制、编辑和导出。
-2. **R3 剩余独立项**
+1. **R3 剩余独立项**
    - Layers 下一小步：wire/junction/label/note/pin 的任意图层分配；同时明确复制/粘贴及几何重建时显示状态的迁移策略。
    - `plain/hop` 交叉显示。
    - 注释/标签字体覆盖。
-3. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
+2. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
 
 ---
 
@@ -377,6 +385,7 @@ npm.cmd test
 npm.cmd run test:r3
 npm.cmd run test:r3:polyline
 npm.cmd run test:r3:arc
+npm.cmd run test:r3:closed-shapes
 npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
