@@ -1,8 +1,8 @@
 # Schematic Editor 交接文档
 
-状态：交接基线 · 2026-11-20
+状态：R3 进行中 · 2026-11-20
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
-源码提交：`0a74f9b` `完善矩形边中点拖拽与图形样式属性`
+源码提交：`156c903` `实现 Layers 逐对象显隐与同层排序`（已推送 `origin/main`）
 
 这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
 
@@ -106,7 +106,10 @@ scripts/              浏览器 smoke 测试
 
 - 系统字体栈（含中文字体 fallback、SVG fallback），未引入 webfont。
 - Layers 面板：图层增删、重命名、上下移动、可见性、锁定、活动图层、对象计数。
-- 右侧 Dock 与 SVG/viewer 的隐藏图层过滤已覆盖普通器件。
+- **Layers 对象树与逐对象操作**：每个图层可展开完整对象列表，覆盖器件、矩形/三角形、wire、junction、label、pin、note 和 coupling；器件可继续展开全部引脚。点击对象同步画布选择，点击引脚选择父器件；隐藏或锁定图层中的对象禁止从树中选择。其它对象及失效层归属暂归第一层。
+- 顶层对象均可独立显隐并在同层相邻上下移动，隐藏对象仍参与排序，锁定层禁止这些编辑。对象树顶层优先的顺序同时驱动 JointJS 画布 z、note DOM 顺序和 SVG 导出顺序；显隐只影响显示，不删除对象或改变连接/网表。增量替换、导线几何刷新和变换后的 junction 重建也会保持隐藏状态与对象树顺序。
+- 逐对象状态保存于可选文档字段 `layerObjectStates[id].visible/z`，新 z 优先于器件旧 `values["layer:z"]`；空状态不写入 JSON，旧文档保持兼容。操作支持撤销/重做、localStorage 刷新恢复和文件 round-trip。引脚不参与排序，显隐沿用 `pinVisible:<pinId>`，仅组件原本允许编辑的引脚可切换。
+- wire/junction/label/note/pin 的任意图层分配尚未实现；复制/粘贴目前不继承 `layerObjectStates`，新对象使用默认显示状态。
 - **自由图形第一步：直接使用 Library 的 `rectangle` / `triangle`。**
 
 #### R3 图形当前事实
@@ -141,7 +144,7 @@ scripts/              浏览器 smoke 测试
 当前已知不足：
 
 - 只有矩形和三角形；折线、多边形、圆、圆弧尚未恢复/重做。
-- 尚无箭头属性；旧实现中“图形”的 z-order 等能力目前由 Library 组件自身的图层机制部分承担，尚未完成 R3 目标。
+- 尚无箭头属性；逐对象显隐和同层 z-order 已完成，但任意图层分配、更多图形类型等 R3 目标仍未完成。
 
 #### 放置点击修复
 
@@ -175,6 +178,9 @@ scripts/              浏览器 smoke 测试
 | 文件 | 作用 |
 |---|---|
 | `packages/schematic/src/schematic/editor.ts` | 编辑器主控制器：事件、选择、放置、图层、图形绘制、放置 fallback |
+| `layerObjectTreeModel.ts` | 从文档派生 Layers 对象树、同层顺序、显隐/排序能力和引脚节点 |
+| `layerObjectStateModel.ts` | 逐对象 visible/z 的读取、旧 layer:z 回退、显示判定与状态写入 |
+| `layerObjectCommands.ts` | 基于当前派生文档计划同层相邻交换，再应用到 transaction draft |
 | `schematicTabShell.ts` | 工作区壳、标签、工具栏、Dock、日志 |
 | `schematicToolbarWeb.ts` | Web 工具栏按钮与图标 |
 | `toolState.ts` | 工具状态与命令映射 |
@@ -252,11 +258,11 @@ npm.cmd run build:web
 
 `npm test` 会先 `build:lib`，再跑 schematic 与 obsidian 测试。
 
-当前工作区（基于 `0a74f9b`，上述矩形边中点拖拽与图形样式修改已提交并推送）：
+当前验证基线为源码提交 `156c903`（已推送 `origin/main`）：
 
-- schematic：160 个测试文件（159 通过 / 1 跳过）；1836 个测试（1834 通过 / 2 跳过）
+- schematic：162 个测试文件（161 通过 / 1 跳过）；1850 个测试（1848 通过 / 2 跳过）
 - obsidian：9 个测试文件 / 69 个测试通过
-- `typecheck`、`build:lib`、`build:web`、`test:r3`、`test:placement` 通过
+- 本轮实际运行并通过：`typecheck`、`npm test`（含 `build:lib`）、`build:web`、`test:r3`、`test:r3:layers`
 
 ### 浏览器 smoke
 
@@ -266,12 +272,14 @@ npm.cmd run build:web
 npm.cmd run test:r1
 npm.cmd run test:r2
 npm.cmd run test:r3
+npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
 
 - `test:r1`：Library、`i` 浏览器、放置、右栏、日志、持久化。
 - `test:r2`：网表、格式/工艺、诊断位置。
 - `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、四个顶点与四个边中点手柄可见、东边中点拖拽只增加宽度且对边与相邻边不移动、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄；覆盖描边线宽/线形/圆角/填充/透明度修改、撤销/重做、localStorage 保存与刷新恢复、三角形隐藏圆角，以及 375px 移动抽屉中的完整属性面板。
+- `test:r3:layers`：完整对象类型、对象计数、器件引脚折叠、对象/引脚与画布选择同步、整层上下移动、隐藏层禁用对象选择；实际点击 component/wire/junction/label/note 的独立显隐，检查对象上下移后的树顺序、真实 graph cell z 与保存的整数状态，覆盖撤销/重做、锁定层控件禁用、localStorage 保存和页面刷新恢复；深色模式四处文字对比度均不低于 4.5:1，375px 移动抽屉无横向溢出。
 - `test:placement`：带 1–5px 鼠标抖动的单击放置，必须每次只创建一个器件。
 
 手动开发：
@@ -310,6 +318,10 @@ npm.cmd run dev
    - R3 规格仍描述折线/多边形/顶点编辑等目标，当前代码只完成 Library 矩形/三角形第一步。
    - R2 也已超出旧规格的 sky130-only 范围（增加了 GF180/IHP/Custom），验收时以当前产品和代码为准。
 
+7. **逐对象状态依赖实际对象 ID**
+   - wire 规范化在连接点拆分后可能产生 `<id>-segment-N`，Layers 操作针对每个实际原子线段；junction ID 由坐标派生，几何重建后不会自动迁移旧状态。
+   - 同层移动必须先在当前 `SchematicDocument`（含派生 junctions）生成计划，再在 transaction 的 `SchematicContent` draft 应用，不能在 draft 中重新枚举 junction。
+
 ---
 
 ## 8. 建议的下一步
@@ -319,13 +331,13 @@ npm.cmd run dev
 优先级建议：
 
 1. **继续补齐 R3 图形视觉能力**
-   - 按需求确认箭头、z-order 等其余能力。
+   - 按需求确认箭头等其余能力；逐对象 z-order 已由 Layers 面板提供。
    - 为 Library 图形增加更明确的视觉标识（当前与器件同列）。
 2. **再决定后续图形**
    - 若继续使用 Library 组件，需要为折线/多边形等新增 catalog 类型或明确新的组件模型。
    - 不要恢复 `annotation + shape:*` 的旧路线。
 3. **R3 剩余独立项**
-   - 全对象图层（wire/junction/label/note/pin）。
+   - Layers 下一小步：wire/junction/label/note/pin 的任意图层分配；同时明确复制/粘贴及几何重建时显示状态的迁移策略。
    - `plain/hop` 交叉显示。
    - 注释/标签字体覆盖。
 4. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
@@ -343,6 +355,7 @@ cd source/schematic-editor
 npm.cmd run typecheck
 npm.cmd test
 npm.cmd run test:r3
+npm.cmd run test:r3:layers
 npm.cmd run test:placement
 ```
 
