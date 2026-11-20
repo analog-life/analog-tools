@@ -2,7 +2,7 @@
 
 状态：交接基线 · 2026-11-20
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
-源码提交：`7c6997e` `修复图形实时吸附预览与单格绘制步进`
+源码提交：`c13fd85` `完善矩形三角形顶点吸附与绘制预览`
 
 这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
 
@@ -120,18 +120,22 @@ scripts/              浏览器 smoke 测试
 
 现在的行为：
 
-- `rectangle` / `triangle` 仍然走 Library catalog 和普通组件属性。
-- 渲染时隐藏了矩形/三角形的引脚引线、引脚小方框、中央文字、三角形顶点 `A/B/C` 标签；只保留外形轮廓。
+- `rectangle` / `triangle` 仍然走 Library catalog，但作为纯图形使用独立的 `eda.LibraryShape` cell。
+- 两种图形在定义层均无任何 pins，JointJS markup 不包含 text 节点，也不生成引脚小方框、中央文字或三角形顶点 `A/B/C` 标签；不是用 `opacity: 0` 隐藏。实际 DOM 只有轮廓和选择/缩放手柄。
+- 读取旧文档时会清除这两种图形的 legacy pin、label 和 pin visibility 字段；Properties 不再显示 Name、Show label 或引脚字段，矩形只保留 Width/Height。
 - 矩形：点击第一个格点，拖动/点击第二个点，拖动中显示虚线矩形，松开后创建。
-- 三角形：依次点击三个格点，每段显示虚线引导，第三点完成后创建。
+- 三角形：依次点击三个格点，第三点完成后创建；放置第一个点后无连线，移动去放第二个点时只连接“第一点 → 当前点”，移动去放第三个点时保留“第一点 → 第二点”的已有边，并增加“第一点 → 当前点”和“第二点 → 当前点”，共三条独立线段；重合或零长度线段不会重复生成。
 - 从首次点击前开始，鼠标移动时实时显示当前吸附点的蓝色圆环；图形虚线预览与吸附标记共用同一坐标。
 - 创建图形的绘制点按 10px（一个可见画布格子）吸附，矩形拖动预览与最终尺寸均使用该步进；保存几何时仍以 20px 的 `SYMBOL_GRID_SIZE` 为单位，无引脚矩形允许 0.5 单位（10px）尺寸，已有图形的移动、缩放和顶点编辑步进不变。
+- 矩形以四个轮廓顶点、三角形以三个实际轮廓顶点作为点击、拖动和缩放的吸附基准，再由顶点的共同修正量更新存储中心；中心不再直接吸附，因此半格中心不会在单击时被取整偏移。
+- 三角形的世界顶点始终保持 10px 网格，但奇数格跨度产生的精确包围盒中心允许落在 5px 半格；局部坐标校验同步允许 5px。重定位顶点时不得把该中心二次吸附到 10px，否则轮廓相对 frame 偏移并出现底部越界。
+- 两种纯图形的选择 frame 直接使用实际轮廓尺寸，不再经过普通器件的 `gridAlignedFrame` 网格外扩；`0.5 × 0.5` 矩形的蓝色虚线框与 10 × 10px 黑色轮廓一致，奇数格跨度的三角形在顶点半格重定位后，frame 也与新轮廓一致。
+- Library 的矩形/三角形预览增加 4px 安全边距并显式等比缩放，默认预览 `viewBox` 分别为 `-4 -4 88 48`、`-4 -4 88 88`，不再贴边裁切。
 - 创建的是普通 `ComponentInstance`，支持选择、移动、缩放、复制、删除、撤销/重做、图层归属。
 - `rectangle` / `triangle` 仍被网表 `SKIP_TYPES` 跳过，不参与电气网表。
 
 当前已知不足：
 
-- Properties 里仍会出现矩形/三角形的器件字段（三角形还会显示 AB/BC/CA pins、Pin A/B/C），尚未按“纯图形”精简。
 - 只有矩形和三角形；折线、多边形、圆、圆弧尚未恢复/重做。
 - 没有独立的填充、描边颜色、线宽、虚线、箭头属性。
 - 旧实现中“图形”的顶点编辑、z-order 等能力目前由 Library 组件自身的 resize/图层机制部分承担，尚未完成 R3 目标。
@@ -192,8 +196,9 @@ scripts/              浏览器 smoke 测试
 | `documentSvgRenderer.ts` | 整图 SVG / viewer |
 | `viewStyling.ts` | 选择态样式 |
 | `layers.ts` | 图层默认值/规范化 |
-| `rectangleComponentModel.ts` | 矩形尺寸、pin 布局 |
-| `triangleComponentModel.ts` | 三角形顶点、边 pin、尺寸 |
+| `rectangleComponentModel.ts` | 纯矩形宽高、legacy pin 命令拒绝 |
+| `triangleComponentModel.ts` | 纯三角形顶点与尺寸 |
+| `libraryShapeGeometry.ts` | 矩形四顶点/三角形三顶点计算与共同吸附修正 |
 
 ### 网表
 
@@ -208,8 +213,9 @@ scripts/              浏览器 smoke 测试
 ### 图形当前实现位置
 
 - 形状选择/绘制：`editor.ts` 中的 `beginLibraryShapeDraw`、`bindLibraryShapeDrawEvents`、`finishLibraryShapeDraw`。
-- 去装饰：`razaviComponentVisualModel.ts` 的 `freeLibraryShape` 分支；`componentRenderer.ts` 跳过图形 ports；`editor.ts` 强制隐藏三角形顶点文字。
-- 创建值：`rectangleWidthGrid` / `rectangleHeightGrid` / `triangleVertex:*` / `trianglePinCount:*`。
+- 纯图形结构：`componentRenderer.ts` 的 `LibraryShapeElement`；catalog 定义层 pins 固定为空，markup 不含 text。
+- 轮廓与吸附：`libraryShapeGeometry.ts`；`view-geometry.ts`、`cellGeometryModel.ts`、`selectionMoveTransaction.ts` 和 `rectangleResizeSession.ts` 共用顶点修正。
+- 创建值：`rectangleWidthGrid` / `rectangleHeightGrid` / `triangleVertex:*`。
 - 放置 fallback：同文件 `placementPointerStart` 附近。
 
 ---
@@ -241,11 +247,11 @@ npm.cmd run build:web
 
 `npm test` 会先 `build:lib`，再跑 schematic 与 obsidian 测试。
 
-当前基线（`aecafb7`）：
+当前源码基线（`c13fd85`，已推送 `origin/main`）：
 
-- schematic：158 个测试文件（157 通过 / 1 跳过）；1827 个测试（1825 通过 / 2 跳过）
+- schematic：158 个测试文件（157 通过 / 1 跳过）；1820 个测试（1818 通过 / 2 跳过）
 - obsidian：9 个测试文件 / 69 个测试通过
-- `typecheck`、`build:lib`、`build:web` 通过
+- `typecheck`、`build:lib`、`build:web`、`test:r3`、`test:placement` 通过
 
 ### 浏览器 smoke
 
@@ -260,7 +266,7 @@ npm.cmd run test:placement
 
 - `test:r1`：Library、`i` 浏览器、放置、右栏、日志、持久化。
 - `test:r2`：网表、格式/工艺、诊断位置。
-- `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、虚线预览、去装饰、Properties。
+- `test:r3`：Library 矩形/三角形绘制、首次点击前吸附标记、10px 单格创建步进、矩形预览与最终尺寸一致、创建后单击不偏移、虚线预览、去装饰、Properties；还覆盖 `0.5 × 0.5` 矩形 frame/轮廓屏幕边界一致、Library 预览 `viewBox`、三角形第一点/第二点/第三点预览分别为 0/1/3 条独立线段，第三阶段保留前两点之间的已有边、实际顶点拖拽、奇数格半格重定位后 frame 对齐且仅有三个可用顶点手柄。
 - `test:placement`：带 1–5px 鼠标抖动的单击放置，必须每次只创建一个器件。
 
 手动开发：
@@ -284,7 +290,8 @@ npm.cmd run dev
    - 脚本里通常先按 `Escape` 取消预览，再断言数量。
 
 3. **Library 矩形/三角形仍是组件**
-   - 不要再给它们增加电气 ports；当前 `componentRenderer` 对这两种类型跳过 ports，网表也跳过。
+   - 不要再给它们增加电气 ports 或隐藏文本；定义层 pins 必须为空，`LibraryShapeElement` markup 不得加入 text，网表也跳过。
+   - 点击、拖动和缩放统一使用 `libraryShapeGeometry.ts` 的实际轮廓顶点，不要退化为存储中心吸附。
    - 不要把 `shape:*` 值重新引入。
 
 4. **CRLF**
@@ -306,8 +313,7 @@ npm.cmd run dev
 
 优先级建议：
 
-1. **确认并完成 R3 图形第一步的收尾**
-   - 矩形/三角形 Properties 隐藏电气 pin 字段。
+1. **确认 R3 图形第一步的后续视觉需求**
    - 补充/确认填充、描边、线宽是否属于下一步。
    - 为 Library 图形增加更明确的视觉标识（当前与器件同列）。
 2. **再决定后续图形**
