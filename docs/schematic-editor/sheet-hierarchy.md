@@ -1,6 +1,6 @@
 # 子图层级与项目包 schema v2
 
-状态：Draft 0.1 · 2026-11-19
+状态：R4 子图端口、总线与层次网表 · 2026-11-22
 关联：[upgrade-plan.md](upgrade-plan.md)（R4）、[netlist-ir.md](netlist-ir.md)
 
 ## 1. 目的与术语
@@ -11,7 +11,7 @@
 |---|---|
 | Project | 一个项目，包含若干 Sheet、一个 Top、可选的 TB；对应一个 `.atproj.json` |
 | Sheet | 子图，等于现在的一份原理图文档 + 一组端口 |
-| Port | 子图的正式端口，有名字、方向、顺序；对应 subckt 的 formal |
+| Port | 通过 Pin 工具放置的正式端口，有稳定 ID、名称、类型、Symbol 所在边和网表顺序 |
 | SheetBlock | 子图块实例，放在父图里，引脚由目标 Sheet 的 Port 派生 |
 | Top | 项目默认入口子图；Hierarchy 树里标 `TOP` |
 | Occurrence | 某个 SheetBlock 在父图中的一次具体使用 |
@@ -41,10 +41,10 @@
       "id": "s_amp",
       "name": "amp",
       "ports": [
-        { "id": "p_in",  "name": "IN",  "direction": "input",  "order": 0 },
-        { "id": "p_out", "name": "OUT", "direction": "output", "order": 1 },
-        { "id": "p_vdd", "name": "VDD", "direction": "passive", "order": 2 },
-        { "id": "p_vss", "name": "VSS", "direction": "passive", "order": 3 }
+        { "id": "p_in",  "name": "IN",  "type": "input",  "direction": "left",   "order": 0, "slot": 0 },
+        { "id": "p_out", "name": "OUT", "type": "output", "direction": "right",  "order": 1, "slot": 0 },
+        { "id": "p_vdd", "name": "VDD", "type": "supply", "direction": "top",    "order": 2, "slot": 0 },
+        { "id": "p_vss", "name": "VSS", "type": "ground", "direction": "bottom", "order": 3, "slot": 0 }
       ],
       "content": { /* 现有 SchematicContent */ }
     }
@@ -57,14 +57,15 @@
 
 - `format` + `version` 必须存在；`version > 2` 拒绝导入，并保持当前工作不变。
 - `sheets[].content` 沿用现有 `SchematicContent`（components / wires / connections / netLabels / notes / inductorCouplings / junctionAppearances 等）；不复制字段定义。
-- `ports` 是 Sheet 的一等公民，不塞进 `content`。
-- `globalNets` 至少包含 `"0"`；顺序不影响输出，输出时排序。示例中的 `VDD`/`VSS` 只是展示“可以声明为全局”，默认策略见第 9 节开放问题。
+- 每个 Pin 在 `content.components` 中有一项 `sheetPort`。项目包中的 `ports` 是从这些组件导出的端口表，导入时校验两者一致。
+- `type` 表示端口类型，`direction` 表示 Symbol 所在边，`slot` 决定在该边的位置，`order` 表示网表位置。新 Pin 按创建顺序分配 `order`，后续可在 Hierarchy 中调整。
+- `globalNets` 默认只含 `"0"`。在 Hierarchy 的全局网络设置中可添加 `VDD`、`VSS` 等名称。
 - `testbenches` 为 R5 预留，v2 允许为空数组；R4 不填。
-- 视图状态（缩放、面板、图层可见性、右栏视图）**不进项目包**。
+- 项目包保留 `SchematicContent` 中的图层和逐对象显隐。缩放、平移和面板状态保存在浏览器。
 
 ### 2.2 SheetBlock 实例
 
-在现有 `ComponentInstance` 上增加可选字段：
+SheetBlock 沿用 `ComponentInstance` 的数据结构，目标和派生引脚保存在 `values` 中。
 
 ```jsonc
 {
@@ -75,96 +76,78 @@
   "y": 200,
   "rotation": 0,
   "mirrored": false,
-  "values": {},
-  "sheetTargetId": "s_amp"
+  "values": {
+    "sheet:target": "s_amp",
+    "sheet:name": "amp",
+    "sheet:ports": "[...]"
+  }
 }
 ```
 
-- `type: "sheetBlock"` 是新组件类型，加入 catalog；`sheetTargetId` 指向目标 Sheet。
-- 引脚不在实例里存，由目标 Sheet 的 `ports` 动态派生（类似现有 rectangle 的动态引脚）。
-- 端口方向决定默认摆位：input 在左，output 在右，passive/inout 在上下均衡；v1 不允许手工改符号布局。
-- 端口名变化只改标签；端口 id 稳定，已连线的端点不丢。
-- 端口被删除时，SheetBlock 的对应引脚消失；父图中落在该引脚上的导线变成悬空线头，并在诊断里提示。
+- `type: "sheetBlock"` 是新组件类型。`values["sheet:target"]` 指向目标 Sheet。
+- 引脚与矩形 Symbol 由目标 Sheet 的 `ports` 动态派生。每个引脚按 `direction` 排布，框内显示名称，短引线末端用方框标记电气接线点。
+- 端口改名同步更新子图、父图 Symbol 和网表中的名称。端口 ID 和接线点保持稳定。
+- 端口换边或删除后，父图只更新 Symbol、连接解析和诊断。父图导线的形状、顶点和端点坐标保持原样。原线头与对应引脚接线点对不上时，在原处显示为悬空线头，由设计者重新接线。
 
 ### 2.3 动态引脚解析（实现约束）
 
-SheetBlock 的引脚来自另一个 Sheet，不能靠静态 catalog 直接得出。现有 `resolveComponentDef(instance)` 只接收实例，没有项目上下文；R4 必须解决这一点。
-
-建议：
-
-- 引入 **project-scoped resolver**：`resolveComponentDef(instance, project)`，由 document host / connectivity / renderer / netlist 在调用时传入当前项目。不要用全局可变单例，否则多标签页会串。
-- 或者：在 SheetBlock 实例上缓存派生引脚（`values["sheet:pins"]`），但必须满足：
-  - 目标端口变化、项目加载、导入后立即重建；
-  - 缓存只是优化，权威仍是目标 Sheet 的 `ports`；
-  - 网表/连通性不得读取过期缓存。
-- 推荐前者；如果实现成本过高，再用缓存方案，并在规格里写清楚失效点。
-- 端口 id 是连接身份；端口名只是显示/网表 formal。重命名不改 id，不重建导线。
+SheetBlock 缓存目标子图的名称和端口表，供连通性、画布和图像导出使用。目标子图的 Pin 定义是权威来源。端口编辑、项目导入和项目加载会同步实例缓存。
+- 父图连接需要匹配稳定端口 ID 和实际接线位置。换边或删除后，原连接可失效。坐标重合本身不足以让原线头自动绑定到其他端口。
 
 ## 3. 存储与迁移
 
 ### 3.1 localStorage
 
-沿用 `at-` 前缀：
-
-| 键 | 内容 |
-|---|---|
-| `at-schematic-workspace` | 项目列表：`id`、`name`、`topSheetId`、`updatedAt` |
-| `at-schematic-project:<projectId>` | 完整项目包（所有 Sheet） |
-| `at-schematic-view:<projectId>` | 每个 Sheet 的视图状态（缩放/平移/图层/右栏） |
-
-- 旧键 `at-schematic:<id>` 继续可读；首次打开时包装成单 Sheet 项目，写新键，不删除旧键（一次性迁移标记）。
+- 项目和导航路径保存在现有工作区的标签页快照里。单图在使用 Hierarchy 或导出项目包时可包装为单 Sheet 项目。每次导入项目都会使用独立的标签页快照。
 - 项目包可能超过 localStorage 配额；保存失败要显示错误并提供“导出备份”，不能静默丢数据。
 - 导出仍是唯一可靠的备份方式；清除站点数据会删除本地项目。
 
 ### 3.2 导入
 
-- 识别三种输入：
-  1. v2 项目包：校验后作为新项目打开。
-  2. 旧单图文档（没有 `format`/`version`，或 `version: 1`）：包装成 `{ topSheetId: "s1", sheets: [{ id:"s1", name:"sheet1", ports: [], content: doc }] }`。
-  3. 其他/未来版本：拒绝，保持当前工作不变，错误写日志。
-- 迁移函数必须是纯函数，并配 golden：旧 JSON → v2 → 导出 → 再导入，结构一致。
-- 不认识的顶层字段：保留在项目包的 `extensions` 里（可选），避免第三方工具写回时丢数据；不认识的 Sheet 字段同理。v1 可以先不实现 `extensions`，但必须“拒绝未来版本”而不是猜。
+- 导入或粘贴当前单图 JSON 可打开独立的原理图标签页。导入 v2 项目包时，校验后在新标签页打开项目的 Top。
+- 不支持的项目版本和校验错误写入日志，保持当前工作不变。
 
 ## 4. 交互
 
-### 4.1 Hierarchy 视图（左栏）
+### 4.1 Hierarchy 视图（右栏）
 
-- 树结构：根 = 没有被任何 SheetBlock 引用的 Sheet；`TOP` 标记在 topSheetId 上。
-- 行内容：实例位号 + 目标 Sheet 名；`×N` 表示同一 Sheet 被引用多次（点击展开所有 occurrence）。
+- 右栏标签顺序为 `Hierarchy / Analysis / Netlist`。Hierarchy 集中展示子图、引用、导航路径和端口列表。
+- 每个 Sheet 可展开，展示直接实例和端口。`TOP` 标记在入口子图上。
+- 子图操作下方依次显示可折叠的「包含的子图」「端口列表」和「查看引用」。实例行显示位号和目标 Sheet 名。通过「查看引用」可定位到对应父图的实例。
 - 过滤框：按 Sheet 名、实例位号搜索。
 - 点击行：选中对应 SheetBlock（如果在当前图）或进入该 Sheet。
 - 双击行 / 双击画布上的 SheetBlock：进入子图。
-- 右键/菜单：`Enter`、`Show callers`、`Set as Top`、`Rename`、`Delete`、`Place`。
-- `+`：新建 Sheet；输入名字和端口（可粘贴 `IN OUT VDD VSS` 自动猜方向），创建后可选择“立即放置到当前图”。
+- 子图操作包括 `Enter`、`Show callers`、`Set as Top`、`Rename`、`Delete`、`Place`。
+- 使用「新建子图」创建 Sheet，随后通过 Pin 工具放置正式端口。
+- Library 增加 `Hierarchy` 库。当前项目中的每张 Sheet 自动提供 Symbol，可在其他 Sheet 中放置。违反循环引用规则的条目禁用放置。
 - 拖动行到画布：放置一个 SheetBlock（可选，R4 后做）。
 
 ### 4.2 导航
 
-- 进入子图时显示面包屑：`top / amp / bias`；点击任一级返回。
-- `↑` 或 `Shift+E`：返回调用者，并选中刚才的 SheetBlock。
-- `Top` 按钮：回到 topSheetId，不改变编辑路径以外的状态。
-- 导航本身不写文档、不进撤销历史；`fit` 与 `F` 行为一致。
+- 「当前层次」以面包屑显示路径，空间不足时优先显示靠近当前子图的部分。点击路径中的子图可返回该层。
+- 按 `E` 后点选实例进入子图。按 `Ctrl+E` 或点击「返回上一层」回到调用者，并选中刚才的 SheetBlock。
+- 点击「返回顶层」回到 `topSheetId` 对应的入口图纸。
+- 导航路径保存在浏览器，不进入电路编辑的撤销历史。
 - 每个项目标签页记住当前路径；重开页面恢复到最近路径；路径失效时回到最近的父级。
 
-### 4.3 端口编辑
+### 4.3 Pin 放置和编辑
 
-- 选中 Sheet（在 Hierarchy 中点 Sheet 行）→ 属性面板显示端口表：
-  - 名称、方向（input/output/inout/passive）、顺序（上/下移）。
-  - 新增、删除、重命名。
-- 名称必须合法（网表标识符规则）；大小写不敏感唯一。
-- 删除已连接端口：确认对话框说明“父图对应导线会变成线头”；确认后执行，一次撤销可恢复。
-- 重命名端口：只改显示名，端口 id 不变；已连线不受影响；网表 formal 名更新。
-- 端口顺序决定 subckt formal 顺序，也决定 SheetBlock 引脚的默认顺序。
+- 工具栏在 Net Label 后提供 Pin，快捷键为 `P`。打开初始属性窗口，确认后在子图画布上放置。后续在左栏 Properties 编辑所选 Pin。
+- 属性包括 `Pin Name`、`Type` 和 `Direction`。类型支持 Supply、Ground、Input、Output、InOut、Passive。Direction 支持上、下、左、右，仅控制生成 Symbol 的所在边。
+- 子图中的 Input、Output 用箭头区分，其余四种类型使用六边形。父图 Symbol 统一使用方框接线点。
+- Pin Name 支持标量名称、单个位（`OUT<3>`）和总线范围（`OUT<7:0>`）。同一张 Sheet 内的正式端口名和总线位不得完全相同，`OUT` 与 `out` 是两个端口。
+- Hierarchy 端口列表提供上移、下移操作以显式调整网表顺序。换边只改 Symbol 排布，保留网表端口位置。
+- 换边与删除保留父图导线原样，失去匹配接线点的线头留在原处，供设计者重新接线。撤销恢复原端口定义，再重新解析连接。
 
 ### 4.4 Top 与循环
 
 - `Set as Top`：写 `topSheetId`，一次撤销；不移动树行、不改变当前路径。
 - 建 SheetBlock 时检查循环：不能直接或间接引用祖先；自引用拒绝。
-- 检测在结构变更时做一次，结果缓存；渲染时不重复遍历。
+- 选择可放置的子图时检查引用路径。项目结构发生变化及导入时，检查全部子图的依赖关系。
 
 ### 4.5 重命名/删除
 
-- Sheet 重命名：改 `name`，subckt 名随之变化；如果新名字与现有 Sheet 冲突，自动加 `_2` 并提示。
+- Sheet 重命名会更新 subckt 名。遇到重名时提示输入另一名称。
 - Sheet 删除：
   - 被引用：拒绝，列出引用它的 SheetBlock。
   - 是 Top：拒绝，先 `Set as Top` 到别的 Sheet。
@@ -175,17 +158,26 @@ SheetBlock 的引脚来自另一个 Sheet，不能靠静态 catalog 直接得出
 
 ### 5.1 规则
 
-- 每个 Sheet 生成一个 subckt；名称 = Sheet 名做 ASCII 规范化，大小写不敏感唯一，冲突加 `_2`。
-- 子电路依赖在前：先输出最底层，再输出调用者，最后输出 Top。
-- formal 顺序 = `ports[].order`，再按名称稳定排序。
+- 每个 Sheet 生成一个 subckt。子图名按标量标识符校验，大小写不敏感唯一。
+- 有依赖关系时先输出被调用的子图，再输出调用者。
+- subckt 定义与实例调用都按 `ports[].order` 排列。网表顺序由端口创建顺序及后续显式排序决定，与名称、类型、所在边无关。
+- 总线在自身范围内按书写顺序展开，例如 `OUT<7:0>` 导出为 `OUT_7 … OUT_0`。`OUT<0:7>` 从第 0 位开始。父图的连线按本地范围与目标端口的位置对应，带位标记的名称与已有标量名冲突时分配唯一名称。
 - SheetBlock 生成 subckt 调用：
-  - SPICE：`X<ref> (nodes...) <sheetSubckt>`；ref 已以 `X` 开头则不再加。
+  - SPICE：`X<ref> nodes... <sheetSubckt>`；ref 已以 `X` 开头则直接使用。
   - Spectre：`<ref> (nodes...) <sheetSubckt>`；保留 ref。
-- 全局网：`0` 与 `globalNets` 不加层级前缀；其余网络属于各自 subckt。
+- 全局网由项目规则统一决定。`0` 与 `globalNets` 不加层级前缀，其余网络属于各自 subckt。Supply 和 Ground 类型本身不会将所在网络声明为项目全局网。
 - **不做名字展平**：让仿真器处理层级。这样 SPICE 与 Spectre 的命名差异最小，也保留调试层级。
 - 端口未绑定（父图实例的某个引脚没接）：error `UNBOUND_PORT`。
 - 端口在子图内部没有连接：warning `PORT_UNCONNECTED`，不阻塞。
 - 循环：error `CYCLE`；缺失目标：error `MISSING_SHEET`。
+- 直接相连的端子和导线位宽不符时输出 `BUS_WIDTH_MISMATCH`，并为失配端子保留独立的网表节点。
+
+#### 总线与 Net Label
+
+- 同一张 Sheet 内相同名称的有效 Net Label 会连接各自的导线。名称区分大小写，子图之间由实例端口建立连接。
+- SPICE 导出为仅大小写不同的节点分配不同的节点名。Spectre 导出保留大小写。
+- 在导线上放置 `OUT<7:0>` 标签，或连接到同宽的总线端口，可形成粗线显示的总线。总线范围最多 256 位。可通过 `OUT<4:2>` 等标签取子范围。
+- 将单独的导线标为 `OUT<3>`，它会接入 `OUT<7:0>` 的第 3 位。两个分离的范围有重叠时，相同位号相连。
 
 ### 5.2 示例
 
@@ -209,7 +201,8 @@ X1 IN OUT VDD VSS amp
 - 导出不包含视图状态、日志、netlist 缓存。
 - 导入必须全量校验后再替换当前项目；校验失败保持当前工作不变。
 - 项目包内 Sheet 顺序固定为 `sheets` 数组顺序；不按名称排序，避免改变用户阅读顺序。
-- 单 Sheet 也可以单独导出为旧格式吗？v1 不提供；只导出项目包。需要单图时用“复制为 JSON”另说。
+- 通过「项目 JSON」导出包含全部子图的项目包。仍可通过 SVG 或 PNG 导出当前子图的图像。
+- 当前图引用其他子图时，选择「原理图 JSON」也会导出项目包，以便保留被引用的子图。
 
 ## 7. 验收
 
@@ -217,8 +210,10 @@ X1 IN OUT VDD VSS amp
 - 修改子图内部电路，父图网表相应变化；父图不需要重新放置。
 - 项目导出 → 导入 → 结构、端口、网表一致；golden 通过。
 - 旧单图 JSON 仍可导入，自动包装为单 Sheet；旧文件不丢字段。
-- 循环、自引用、缺失 Sheet、未绑定端口、重复 Sheet 名均被拒绝并定位到对象。
-- 重命名端口不破坏连线；删除已连接端口有确认，撤销可恢复。
+- 循环、自引用、缺失 Sheet 和重复 Sheet 名均被拒绝并定位到对象。未绑定端口报告可定位的诊断，父图可继续编辑。
+- 改名后，子图、父图 Symbol 和网表的名称同步更新，端口 ID 和接线点一致。
+- 换边及删除端口前后，父图导线的标识、形状、顶点和端点坐标一致。失去匹配接线点的线头悬空且可继续编辑；换边后的网表端口顺序一致。撤销后按原端口定义恢复有效连接。
+- 通过 `P` 放置标量 Pin、通过 Properties 编辑。Library 的 Hierarchy 库可放置自动生成的 Symbol，方框中心可被导线吸附。
 - Hierarchy 树、面包屑、`↑`、`Top`、`Set as Top` 行为符合 4.2/4.4。
 - 项目包超过配额时保存失败有明确提示，导出可用。
 
@@ -235,8 +230,5 @@ X1 IN OUT VDD VSS amp
 
 ## 9. 开放问题
 
-1. `globalNets` 默认是否包含 `VDD`/`VSS`，还是只含 `0`、由用户声明？
-2. 端口方向是否需要 `power` 类型（用于 VDD/VSS 自动排到顶部/底部）？
-3. Sheet 名与 subckt 名不一致时，是否允许单独设置 `netlistName`？（v1 建议不允许，保持可预测。）
-4. 项目包是否需要 `extensions` 保留未知字段？v1 可以先拒绝未来版本。
-5. 删除端口后，父图线头是保留为普通导线，还是自动删除？
+1. 后续是否允许单独设置子图的 `netlistName`。
+2. 后续是否需要通过 `extensions` 保存项目包的未知字段。

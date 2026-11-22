@@ -1,6 +1,6 @@
 # Schematic Editor 交接文档
 
-状态：R1–R3 完整回归通过，可进入 R4 · 2026-11-22
+状态：R4 子图层级与总线已实现并通过回归 · 2026-11-22
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
 已推送的验收基线：`e7b4824`（`origin/main`）。功能提交为 `65fcdaf`，后续提交 `e7b4824` 修正浏览器测试对属性标签换行的测量方式。
 源码提交 `1840475` 实现了 1B 图层归属模型，`432c4df` 实现了 1C 图层改派与按活动层放置，`904d0d4` 将文档栏剪贴板导入统一到文件导入流程。内测文档格式遵循仓库 `AGENTS.md`。
@@ -191,13 +191,21 @@ R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载�
 - 完全不动仍走 JointJS 原路径；大于 12px 视为拖动，不放置。
 - 回归脚本：`scripts/placement-jitter.mjs`（`npm run test:placement`）。
 
-### R4–R6：未开始
+### R4：子图层级、总线与项目包
 
-- R4：Project/Sheet/Ports、层级、项目包。
+- Web 右栏 Hierarchy 管理子图、引用、端口顺序、全局网络和 Top。工具栏的 Pin（`P`）设置类型、名称及自动符号中的所在边，左栏 Properties 可编辑已放置的端口。
+- Library 的 Hierarchy 库提供自动生成的矩形符号和方框接线点。按 `E` 后点选实例进入子图，按 `Ctrl+E` 返回调用者。
+- Pin 改名保留端口身份及接线；换边和删除保留父图导线坐标，失配线头留在原处。换边不影响网表顺序。
+- Pin 和 Net Label 严格区分大小写。同一张 Sheet 中同名有效标签电气相连。总线使用 `OUT<7:0>`，单个位使用 `OUT<3>`，SPICE 和 Spectre 按书写顺序展开。
+- `schematicProject.ts` 管理项目拓扑、派生符号和 v2 项目包。`schematicHierarchyPanel.ts` 管理交互。`netlist/project.ts` 生成 SPICE / Spectre 层级定义及诊断。
+- 源码基线为 `912caee`，已推送到源码仓库的 `origin/main`。可导入源码仓库 `scripts/fixtures/r4-dual-rc-test.atproj.json` 测试三级导航及两个父图实例的端口同步。
+- `npm run test:r4` 验证 Pin 放置、方框接线、父图导线保留、删除与跨子图撤销、端口重排、两种网表、项目包文件和剪贴板往返、刷新恢复及 375 px 深色界面。单元测试覆盖三级调用及循环、缺失引用。
+- 库、Web 和 Obsidian 构建及类型检查通过。启用长测后，Schematic 1918 项通过，Obsidian 70 项通过。浏览器验证了总线单个位的分接、层次快捷键、折叠区和 375 px 深色模式下的长路径显示。
+
+### R5–R6：未开始
+
 - R5：TB deck。
 - R6：Agent transaction / MCP。
-
-不要把 R3 的图形字段或 R4 的 schema 变更混在一起做。
 
 ---
 
@@ -396,9 +404,8 @@ npm.cmd run dev
 
 ## 8. 建议的下一步
 
-1. 先核对 [R4 层级规格](sheet-hierarchy.md) 的项目包边界。Sheet 应沿用当前 `SchematicContent`，保留图层与对象显隐、跨线、字体、工艺和单器件模型。缩放、面板、日志与界面偏好继续在文档之外保存。
-2. 用 Top 引用一个电阻分压 Sheet 完成纵向验证。先用项目上下文解析 `SheetBlock` 端口，以稳定的端口 ID 保存连线，再验证 SPICE 和 Spectre 的子电路定义、实例与端口顺序。
-3. 验证当前单图 JSON 可打开为单 Sheet 项目，再扩展到三级嵌套、端口改名与删除、循环和缺失引用诊断。输入格式遵循内测规则。
+1. 参考 [R4 层级规格](sheet-hierarchy.md) 中的项目包和层级网表接口，评估 R5 Testbench 如何使用现有子图及其正式端口。
+2. 保留 `npm run test:r4` 作为层次编辑和项目包的基线。
 
 ---
 

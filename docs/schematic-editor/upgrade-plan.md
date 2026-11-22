@@ -41,8 +41,8 @@
 
 - R1：`Library`、`Properties` 两个 tab；`Library` 默认。
 - R3：增加 `Layers`。
-- R4：增加 `Hierarchy`。
-- tab 顺序建议：`Library / Properties / Hierarchy / Layers`；窄屏仍为抽屉，tab 横向可滚动。
+- tab 顺序为 `Library / Properties / Layers`；窄屏仍为抽屉，tab 横向可滚动。
+- R4 在 `Library` 中增加 `Hierarchy` 库，在 `Properties` 中加入 Pin 属性。
 - 宽度范围沿用 210–520；`Properties` 需要更宽时按 tab 记忆宽度（可以后续再做，R1 先全局一个宽度）。
 
 `Library` 必须展示全部器件和模板：
@@ -65,6 +65,7 @@
 ### 3.3 右栏
 
 - 以 `Analysis`、`Netlist` 两个标签切换视图。Netlist 上下等高显示网表和诊断，各自滚动。
+- R4 在 `Analysis` 左侧增加 `Hierarchy`，集中展示和管理项目层级。
 - 右栏默认收起。可通过工具栏按钮或右侧把手打开，恢复上次选中的标签。桌面可拖动调整宽度，窄屏使用抽屉。
 - 布局保存在 `at-schematic-layout`，随浏览器刷新恢复。
 - R5 继续复用 Netlist 的预览与下载能力。
@@ -159,9 +160,11 @@
 
 交付：
 
-- 项目 schema v2：`Project → Sheets → Ports`；旧单图自动包装。
+- 项目 schema v2：`Project → Sheets → Ports`；当前单图使用层次功能或导出项目包时按需包装。
 - 项目包导入/导出（`.atproj.json`）。
-- 左栏 `Hierarchy`：树、创建子图、端口编辑、放置子图块、进入/退出、面包屑、Top 标记。
+- 右栏 `Hierarchy`：子图树、引用、导航、端口顺序和 Top 标记。
+- 工具栏在 Net Label 后增加 Pin（`P`）。放置后在左栏 Properties 编辑名称、类型和 Symbol 所在边。
+- 自动生成带方框接线点的子图 Symbol，通过 `Library → Hierarchy` 放置。支持标量 Pin、`OUT<7:0>` 总线及 `OUT<3>` 单个位。
 - 层级网表：每个子图一个 subckt，实例化表达，不做名字展平；SPICE/Spectre 双格式。
 - 循环、缺失子图、端口不匹配、未绑定端口的诊断。
 
@@ -170,7 +173,8 @@
 - 三级嵌套在两种格式下正确；子图修改反映到父图网表。
 - 导出 → 导入 → 结构与网表一致；旧单图 JSON 仍可打开。
 - 循环/自引用/缺失子图被拒绝并定位到对象。
-- 重命名端口不破坏已连线；删除已连接端口有确认并留下可编辑的线头。
+- 改名同步更新子图、父图 Symbol 和网表，保持端口 ID 与接线点。
+- 换边和删除保持父图导线几何原样，对不上引脚的线头留在原处，由设计者重新接线。换边保持网表端口顺序，顺序可在 Hierarchy 中单独调整。
 
 ### R5 TB
 
@@ -278,7 +282,7 @@
 ### 6.3 文档 schema 与迁移
 
 - R3 的图形字段用可选字段加入，缺省为空，不升项目版本。
-- R4 升项目格式到 v2；旧的单图 JSON 导入时包装成一张无端口子图。
+- R4 项目包使用 v2。当前单图 JSON 可独立打开，也可包装为单 Sheet 项目。
 - 内测期间按仓库 `AGENTS.md` 更新当前文档格式与校验。公开发布前重新评估旧格式兼容以及未知字段处理规则。
 - 每个 schema 版本配 golden JSON 往返测试。
 
