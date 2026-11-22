@@ -202,9 +202,9 @@ R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载�
 - `npm run test:r4` 验证 Pin 放置、方框接线、父图导线保留、删除与跨子图撤销、端口重排、两种网表、项目包文件和剪贴板往返、刷新恢复及 375 px 深色界面。单元测试覆盖三级调用及循环、缺失引用。
 - 库、Web 和 Obsidian 构建及类型检查通过。启用长测后，Schematic 1918 项通过，Obsidian 70 项通过。浏览器验证了总线单个位的分接、层次快捷键、折叠区和 375 px 深色模式下的长路径显示。
 
-### R5：Agent 事务与本地 MCP，未开始
+### R5：本机 Agent 协作
 
-- 开发范围包括 Snapshot / Transaction 协议、站内审阅和本地 MCP。详见 [Agent 事务规格](agent-transaction.md)。
+- Web 编辑器支持一次性配对、短时令牌、结构化快照、试运行、语义事务及修订冲突检查。连接器通过 `npm run agent:connector` 在本机启动。详见 [Agent 事务规格](agent-transaction.md)。
 
 ---
 
@@ -403,7 +403,7 @@ npm.cmd run dev
 
 ## 8. 建议的下一步
 
-1. 按 [R5 Agent 事务规格](agent-transaction.md)，先打通项目快照、事务校验、差异审阅和原子应用，再接入本地 MCP。
+1. 使用 `npm run test:r5` 验证本机配对、快照、事务写入及人工收回编辑权。
 2. 保留 `npm run test:r4` 作为层次编辑和项目包的基线。
 
 ---

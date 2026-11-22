@@ -181,15 +181,16 @@
 交付：
 
 - Snapshot / Transaction 协议（v1.0）。
-- 站内“Agent 审阅”：粘贴/导入 JSON → 校验 → diff 摘要 → 单步撤销应用。
-- 本地 MCP server（stdio）：读项目、取网表、校验、应用 transaction。
-- 可选 localhost 桥（用户显式连接，非 v1 必做）。
+- 工具栏通过一次性配对提示词发起协作，顶栏提供连接状态、暂停、断开和收回编辑权。
+- 本机连接器转发结构化快照、带修订号的语义动作和事务回执。
+- Agent 可先试运行获取差异，然后提交一个可单步撤销的事务。
 
 验收：
 
 - Agent 能通过 transaction 添加器件/导线/标签/子图并原子应用；一次撤销恢复。
 - 非法/过期 transaction 被拒绝，错误定位到 op index。
-- MCP 本地 roundtrip 成功；页面默认零网络请求。
+- 本机连接器完成配对、快照读取、事务提交和令牌撤销。工程数据通过本地回环接口交换。
+- 拒绝基于旧修订号或与人工编辑并发的写入。
 - 不支持 DOM/pointer 控制、任意脚本、URL 加载。
 
 ## 5. 非目标
@@ -237,7 +238,7 @@
 
 - 不做站内 LLM 对话、不内置 API key、不自动联网。
 - 不做 DOM/pointer 模拟点击；Agent 只走 typed transaction。
-- v1 不做实时双向同步；先文件式（导出→MCP→导入）。
+- 页面是唯一工程写入方；Agent 通过显式读取和语义事务协作。
 - 不做任意代码执行、URL 加载、文件系统任意路径。
 
 ## 6. 跨切面约束
@@ -313,7 +314,7 @@
 | R2 | 2a + 2b + 4b | 双格式 golden；sky130 MOS 可导出；诊断可用 |
 | R3 | 1 + 7 + 5a | 图形/字体/跨线/图层与导出一致 |
 | R4 | 5b | 三级层级双格式正确；项目包往返 |
-| R5 | 6b | Agent transaction 原子应用；MCP 本地往返 |
+| R5 | 6b | 本机配对、修订号冲突检查和 Agent transaction 原子应用 |
 
 每批独立发布、独立回滚；不要把 R2 和 R4 合并发布。
 
@@ -330,6 +331,6 @@
 | 自由图形 | `catalog.ts`、`shapeResizeSession.ts`、`renderer.ts`/`svgRenderer.ts`、`schematicDocumentCodec.ts` | 新图形类型 + 序列化 + 导出 |
 | 字体/交叉/图层 | `renderer.ts`、`svgRenderer.ts`、`viewStyling.ts`、`schematicLayoutController.ts` | 图层状态进 view state |
 | 子图层级 | `document/documentModel.ts`、`schematicDocumentCodec.ts`、`workspacePersistence.ts`、新增 `hierarchyController.ts` | 需要 project-scoped resolver；见 sheet-hierarchy 2.3 |
-| Agent | 新增 `src/schematic/agent/`（`snapshot.ts`、`transaction.ts`、`validate.ts`）；`tools/schematic-mcp/` | 复用 `SchematicEditorHandle`；MCP 不部署 |
+| Agent | `src/schematic/agent/` 与 `tools/schematic-agent/` | 页面复用原理图模型和撤销历史；连接器在本机运行 |
 
 这张表是建议，不是硬性目录约束；实现时可以按实际依赖调整，但“IR 与 printer 分离”“层级 resolver 不全局”“Agent 不碰 DOM”这三条不能破。
