@@ -14,7 +14,7 @@
 建议顺序：
 
 1. 本文件。
-2. [upgrade-plan.md](upgrade-plan.md)：R1–R6 的目标、验收与非目标。
+2. [upgrade-plan.md](upgrade-plan.md)：R1–R5 的目标、验收与非目标。
 3. [netlist-ir.md](netlist-ir.md)、[sheet-hierarchy.md](sheet-hierarchy.md)、[agent-transaction.md](agent-transaction.md)：按任务选读。
 4. 源码入口：`source/schematic-editor/packages/schematic/src/schematic/editor.ts`。
 
@@ -101,7 +101,7 @@ R1 浏览器回归覆盖 375、768、1080 px 下的 Library、`i` 浏览器、�
 - Netlist 面板提供格式切换、行号、复制和下载。网表与诊断上下等高，各自滚动。
 - ERC：悬空引脚、重复位号、缺模型、缺参数、不支持器件等。
 
-R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载结构网表。已补齐缺失或格式无效的模型名、名称冲突、MOS 参数边界及显式体端悬空等负例。点击器件诊断会选中并居中。RC 低通、MOS 共源和差分对的六份 golden 已通过离线语法及 JSON 重载逐字节对拍。1000 器件串联电路的 IR 构建与两种格式输出，五次测得 31.3–66.6 ms，低于 500 ms 的验收上限。仿真器和目标 PDK 实测留到后续仿真阶段。详见 [网表规格](netlist-ir.md)。
+R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载结构网表。已补齐缺失或格式无效的模型名、名称冲突、MOS 参数边界及显式体端悬空等负例。点击器件诊断会选中并居中。RC 低通、MOS 共源和差分对的六份 golden 已通过离线语法及 JSON 重载逐字节对拍。1000 器件串联电路的 IR 构建与两种格式输出，五次测得 31.3–66.6 ms，低于 500 ms 的验收上限。详见 [网表规格](netlist-ir.md)。
 
 ### R3：显示与图形 —— 源码验收通过
 
@@ -202,10 +202,9 @@ R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载�
 - `npm run test:r4` 验证 Pin 放置、方框接线、父图导线保留、删除与跨子图撤销、端口重排、两种网表、项目包文件和剪贴板往返、刷新恢复及 375 px 深色界面。单元测试覆盖三级调用及循环、缺失引用。
 - 库、Web 和 Obsidian 构建及类型检查通过。启用长测后，Schematic 1918 项通过，Obsidian 70 项通过。浏览器验证了总线单个位的分接、层次快捷键、折叠区和 375 px 深色模式下的长路径显示。
 
-### R5–R6：未开始
+### R5：Agent 事务与本地 MCP，未开始
 
-- R5：TB deck。
-- R6：Agent transaction / MCP。
+- 开发范围包括 Snapshot / Transaction 协议、站内审阅和本地 MCP。详见 [Agent 事务规格](agent-transaction.md)。
 
 ---
 
@@ -404,7 +403,7 @@ npm.cmd run dev
 
 ## 8. 建议的下一步
 
-1. 参考 [R4 层级规格](sheet-hierarchy.md) 中的项目包和层级网表接口，评估 R5 Testbench 如何使用现有子图及其正式端口。
+1. 按 [R5 Agent 事务规格](agent-transaction.md)，先打通项目快照、事务校验、差异审阅和原子应用，再接入本地 MCP。
 2. 保留 `npm run test:r4` 作为层次编辑和项目包的基线。
 
 ---

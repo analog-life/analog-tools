@@ -1,4 +1,4 @@
-# Schematic Editor 升级计划（R1–R6）
+# Schematic Editor 升级计划（R1–R5）
 
 状态：Draft 0.1 · 2026-11-19
 关联规格：[netlist-ir.md](netlist-ir.md)、[sheet-hierarchy.md](sheet-hierarchy.md)、[agent-transaction.md](agent-transaction.md)
@@ -7,13 +7,15 @@
 
 顺序固定为：
 
-**R1 面板容器与反馈 → R2 结构化网表 → R3 显示与图形 → R4 子图层级 → R5 TB → R6 Agent。**
+**R1 面板容器与反馈 → R2 结构化网表 → R3 显示与图形 → R4 子图层级 → R5 Agent。**
+
+原理图编辑器提供结构化网表。仿真由独立工具另行规划。
 
 原则：
 
 1. 先做容器，再做内容。左侧栏、右侧栏、日志区是后面所有功能的落点；先拆一次 DOM，避免每期返工。
-2. 先做数据，再做消费。网表是右栏查看器、层级、TB、Agent 的公共底座。
-3. 关键路径优先，独立项做缓冲。R1→R2→R4→R5→R6 是关键路径；R3 不在关键路径上，可以提前或延后，但不能插进 R4 的 schema 变更中间。
+2. 先做数据，再做消费。网表是右栏查看器、层级和 Agent 的公共底座。
+3. 关键路径优先，独立项做缓冲。R1→R2→R4→R5 是关键路径；R3 不在关键路径上，可以提前或延后，但不能插进 R4 的 schema 变更中间。
 4. 一期只改一次文档 schema。R3 加图形字段，R4 加项目/层级字段；不要在同一期里既改 schema 又做大 UI。
 
 ## 2. 现状（代码事实）
@@ -68,7 +70,6 @@
 - R4 在 `Analysis` 左侧增加 `Hierarchy`，集中展示和管理项目层级。
 - 右栏默认收起。可通过工具栏按钮或右侧把手打开，恢复上次选中的标签。桌面可拖动调整宽度，窄屏使用抽屉。
 - 布局保存在 `at-schematic-layout`，随浏览器刷新恢复。
-- R5 继续复用 Netlist 的预览与下载能力。
 
 ### 3.4 日志/通知
 
@@ -93,8 +94,7 @@
 | R2 | 结构化网表与查看器 | 2、4b | L+ | R1 |
 | R3 | 显示与图形 | 1、7、5a | M+ | R1 |
 | R4 | 子图层级 | 5b | XL | R2、R3 |
-| R5 | TB | 6a | L | R4 |
-| R6 | Agent | 6b | L | R2、R4 |
+| R5 | Agent | 6b | L | R2、R4 |
 
 ### R1 面板容器与反馈
 
@@ -127,7 +127,7 @@
 - Netlist 诊断区提供错误与警告列表，点击器件诊断可选中并居中。
 - ERC：悬空引脚、单引脚网络、重复位号、缺模型、缺参数、不支持器件、数值解析失败。
 
-边界：**结构网表**只包含器件、子电路和连接；不包含 `.include`、`.lib`、模型卡、分析语句、`.end`。这些属于 R5 的 simulation deck。详见 [netlist-ir.md](netlist-ir.md)。
+**结构网表**记录器件、子电路和连接，范围详见 [网表规格](netlist-ir.md)。
 
 验收：
 
@@ -176,23 +176,7 @@
 - 改名同步更新子图、父图 Symbol 和网表，保持端口 ID 与接线点。
 - 换边和删除保持父图导线几何原样，对不上引脚的线头留在原处，由设计者重新接线。换边保持网表端口顺序，顺序可在 Hierarchy 中单独调整。
 
-### R5 TB
-
-交付：
-
-- TB 子图：普通 Sheet，项目用 `testbenches` 元数据标记；内容是 DUT 子图实例、源、负载。
-- TB 设置对话框（工具栏 `TB` 按钮）：选择 DUT、分析列表（`.op/.dc/.ac/.tran/.noise`）、corner、温度、电源、`.save`；写入项目元数据。
-- Deck 生成：DUT 结构网表 + TB top + PDK include/lib + 分析 + `.end`；SPICE 与 Spectre。
-- 右栏 `Netlist` 增加 `Deck` 模式，不新增右栏视图；下载 `.cir`/`.scs`。
-- 校验：无 DUT、无源、无分析、端口未绑定、corner 未知。
-
-验收：
-
-- sky130 反相器、差分对的 TB deck 能在 ngspice 跑通；Spectre 按本地 PDK 实测。
-- corner/温度/电源写入正确；端口映射正确。
-- 浏览器内不做仿真；不引入 ngspice wasm。
-
-### R6 Agent
+### R5 Agent
 
 交付：
 
@@ -215,7 +199,6 @@
 ### 全局
 
 - 不做云端项目、账号、Gallery、社区器件库。
-- 不做浏览器内仿真（不引入 ngspice/Spectre wasm）。
 - 不做版图/工艺层编辑；Layers 只指显示层。
 - 不复制任何第三方项目的代码、样式、文档或资源。
 
@@ -252,12 +235,6 @@
 
 ### R5
 
-- 不做仿真执行、扫参、Monte Carlo、测量语句、波形查看。
-- 不做多 TB 并行/批量 corner 扫描；v1 一个 TB、一个 corner。
-- 不做 PDK 安装/下载；只生成 include/lib 路径模板。
-
-### R6
-
 - 不做站内 LLM 对话、不内置 API key、不自动联网。
 - 不做 DOM/pointer 模拟点击；Agent 只走 typed transaction。
 - v1 不做实时双向同步；先文件式（导出→MCP→导入）。
@@ -289,7 +266,7 @@
 ### 6.4 撤销/重做
 
 - 一次用户手势 = 一步撤销；一次 Agent transaction = 一步撤销。
-- 新增可编辑状态（图形顶点、端口、子图块位置、TB 参数）必须接入现有 history。
+- 新增可编辑状态（图形顶点、端口、子图块位置）必须接入现有 history。
 - 缩放、面板宽度、右栏激活视图等视图设置独立于撤销历史。图层和对象的显隐随文档保存，并进入编辑历史。
 
 ### 6.5 导出与只读 viewer
@@ -316,7 +293,6 @@
 |---|---|---|
 | R4 schema 与层级网表 | 全计划最大单期，可能拖垮排期 | 先做“电阻分压子图”纵向切片；schema 先评审再写 UI |
 | 双仿真器语法差异 | SPICE/Spectre 逻辑分叉、测试翻倍 | 强制 IR + 纯 printer；先 SPICE 后 Spectre；golden 锁格式 |
-| sky130 Spectre 模型可用性 | 本地 PDK 可能没有 Spectre 模型 | R2 验收仅检查语法；模型库和可配置 include 路径留到 R5 验收 |
 | i18n 精确匹配字典 | 新 UI 文案爆炸、漏翻 | R1 起改用 key；旧表只做兼容 |
 | 构建/发布链 | hash 引用、CSS 覆盖、手册不同步 | 写发布脚本 + 基线截图；每期只发一次 |
 | Agent 范围蔓延 | 做成聊天/自动化平台 | 只做 typed transaction + 审阅；不做站内 LLM |
@@ -324,12 +300,10 @@
 
 ## 8. 开放问题
 
-1. R5 实测时，目标环境能否提供 sky130 的 Spectre 模型库？
-2. sky130 MOS 的显式 B 端是否需要提供可选的默认接地设置？R2 当前用占位网络并报告错误。
-3. 全局网策略：除 `0` 外，`VDD`/`VSS` 默认全局还是按项目声明？
-4. TB 是否允许多个？v1 建议一个项目一个 TB，但 schema 预留数组。
-5. 结构网表的实例名前缀：SPICE 下 sky130 MOS 是 subckt，必须 `XM1`；UI 仍显示 `M1`，是否接受这个差异？
-6. 日志是否需要跨会话保留最近 100 条？当前定为仅会话内。
+1. sky130 MOS 的显式 B 端是否需要提供可选的默认接地设置？R2 当前用占位网络并报告错误。
+2. 全局网策略：除 `0` 外，`VDD`/`VSS` 默认全局还是按项目声明？
+3. 结构网表的实例名前缀：SPICE 下 sky130 MOS 是 subckt，必须 `XM1`；UI 仍显示 `M1`，是否接受这个差异？
+4. 日志是否需要跨会话保留最近 100 条？当前定为仅会话内。
 
 ## 9. 发布批次
 
@@ -339,8 +313,7 @@
 | R2 | 2a + 2b + 4b | 双格式 golden；sky130 MOS 可导出；诊断可用 |
 | R3 | 1 + 7 + 5a | 图形/字体/跨线/图层与导出一致 |
 | R4 | 5b | 三级层级双格式正确；项目包往返 |
-| R5 | 6a | TB deck 可在 ngspice 跑通 |
-| R6 | 6b | Agent transaction 原子应用；MCP 本地往返 |
+| R5 | 6b | Agent transaction 原子应用；MCP 本地往返 |
 
 每批独立发布、独立回滚；不要把 R2 和 R4 合并发布。
 
@@ -357,7 +330,6 @@
 | 自由图形 | `catalog.ts`、`shapeResizeSession.ts`、`renderer.ts`/`svgRenderer.ts`、`schematicDocumentCodec.ts` | 新图形类型 + 序列化 + 导出 |
 | 字体/交叉/图层 | `renderer.ts`、`svgRenderer.ts`、`viewStyling.ts`、`schematicLayoutController.ts` | 图层状态进 view state |
 | 子图层级 | `document/documentModel.ts`、`schematicDocumentCodec.ts`、`workspacePersistence.ts`、新增 `hierarchyController.ts` | 需要 project-scoped resolver；见 sheet-hierarchy 2.3 |
-| TB | 新增 `src/schematic/testbench/`（`model.ts`、`deckBuilder.ts`、`validate.ts`） | 结构网表 + deck 拼装 |
 | Agent | 新增 `src/schematic/agent/`（`snapshot.ts`、`transaction.ts`、`validate.ts`）；`tools/schematic-mcp/` | 复用 `SchematicEditorHandle`；MCP 不部署 |
 
 这张表是建议，不是硬性目录约束；实现时可以按实际依赖调整，但“IR 与 printer 分离”“层级 resolver 不全局”“Agent 不碰 DOM”这三条不能破。

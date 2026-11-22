@@ -9,7 +9,7 @@
 
 | 术语 | 含义 |
 |---|---|
-| Project | 一个项目，包含若干 Sheet、一个 Top、可选的 TB；对应一个 `.atproj.json` |
+| Project | 一个项目，包含若干 Sheet 和一个 Top，对应一个 `.atproj.json` |
 | Sheet | 子图，等于现在的一份原理图文档 + 一组端口 |
 | Port | 通过 Pin 工具放置的正式端口，有稳定 ID、名称、类型、Symbol 所在边和网表顺序 |
 | SheetBlock | 子图块实例，放在父图里，引脚由目标 Sheet 的 Port 派生 |
@@ -60,7 +60,7 @@
 - 每个 Pin 在 `content.components` 中有一项 `sheetPort`。项目包中的 `ports` 是从这些组件导出的端口表，导入时校验两者一致。
 - `type` 表示端口类型，`direction` 表示 Symbol 所在边，`slot` 决定在该边的位置，`order` 表示网表位置。新 Pin 按创建顺序分配 `order`，后续可在 Hierarchy 中调整。
 - `globalNets` 默认只含 `"0"`。在 Hierarchy 的全局网络设置中可添加 `VDD`、`VSS` 等名称。
-- `testbenches` 为 R5 预留，v2 允许为空数组；R4 不填。
+- 当前 v2 项目包的校验要求 `testbenches` 固定为空数组。
 - 项目包保留 `SchematicContent` 中的图层和逐对象显隐。缩放、平移和面板状态保存在浏览器。
 
 ### 2.2 SheetBlock 实例
@@ -192,7 +192,7 @@ X1 IN OUT VDD VSS amp
 .ends top
 ```
 
-- Top 也是一个 subckt；R5 的 TB deck 再实例化它。
+- Top 以子电路定义输出。
 - 结构网表仍然不加 `.include`、`.lib`、分析、`.end`（见 netlist-ir.md）。
 
 ## 6. 导出/导入

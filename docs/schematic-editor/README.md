@@ -2,17 +2,17 @@
 
 状态：Draft 0.1 · 2026-11-19
 
-本目录保存 Schematic Editor 下一阶段（R1–R6）的计划与规格。规格描述“应当做成什么样”，不描述当前代码“已经是什么”；两者不一致时，先看代码，再更新规格。
+本目录保存 Schematic Editor 的 R1–R5 开发计划与规格。当前实现和验收记录见交接文档。
 
 ## 文档
 
 | 文件 | 内容 | 状态 |
 |---|---|---|
-| [handoff.md](handoff.md) | **交接文档：当前代码事实、R1–R3 进度、构建/测试、已知坑与下一步** | Current |
+| [handoff.md](handoff.md) | 当前代码、R1–R4 进度、构建与测试、已知问题及下一步 | Current |
 | [upgrade-plan.md](upgrade-plan.md) | 总体路线图、界面决策、验收标准、非目标、风险 | Draft |
 | [netlist-ir.md](netlist-ir.md) | 网表 IR、规范化、SPICE/Spectre printer、sky130 profile、诊断 | Draft |
 | [sheet-hierarchy.md](sheet-hierarchy.md) | 项目包 schema v2、子图/端口、导航、层级网表 | Draft |
-| [agent-transaction.md](agent-transaction.md) | 站外 Agent 的 snapshot/transaction 协议、站内审阅、本地 MCP | Draft |
+| [agent-transaction.md](agent-transaction.md) | R5 的 Snapshot / Transaction 协议、站内审阅和本地 MCP | Draft |
 | [phase0-baseline.md](phase0-baseline.md) | 构建/发布基线：环境、构建与测试结果、产物指纹 | Done |
 
 建议阅读顺序：`handoff.md`（先了解代码现状）→ 本文件 → `upgrade-plan.md` → 按需要读三份专项规格。

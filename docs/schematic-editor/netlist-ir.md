@@ -1,7 +1,7 @@
 # 结构化网表与网表 IR
 
 状态：Draft 0.1 · 2026-11-19
-关联：[upgrade-plan.md](upgrade-plan.md)（R2）、[sheet-hierarchy.md](sheet-hierarchy.md)（R4）、[agent-transaction.md](agent-transaction.md)（R6）
+关联：[upgrade-plan.md](upgrade-plan.md)（R2）、[sheet-hierarchy.md](sheet-hierarchy.md)（R4）、[agent-transaction.md](agent-transaction.md)（R5）
 
 ## 1. 目的与边界
 
@@ -13,6 +13,7 @@
 - 器件实例与连接
 - 器件参数（`w`、`l`、`m`、`nf` 等）
 - 端口顺序
+- 层级项目显式声明的全局网络
 
 结构网表**不包含**：
 
@@ -23,12 +24,7 @@
 - `.end`
 - 任何坐标、颜色、选择、视图、图层信息
 
-这些属于 R5 的 **simulation deck（仿真 deck）**。分开的原因：
-
-1. 结构网表可以安全地被复制、比较、版本管理，不依赖 PDK 安装路径。
-2. SPICE 和 Spectre 共用一套 IR，只换 printer。
-3. TB 生成 deck 时再拼 include、corner、分析、`.end`，不会把“设计”与“仿真设置”混在一起。
-4. Agent 读写的是结构，不会误改仿真环境。
+SPICE 和 Spectre 共用一套 IR。结构网表独立于本地 PDK 安装路径，可用于比较、版本管理和 Agent 的电路结构审阅。
 
 ## 2. 流程
 
@@ -43,11 +39,6 @@ SchematicDocument / Project
         │
         ├── SpicePrinter  ──►  .sp / .cir 文本
         └── SpectrePrinter ──►  .scs 文本
-
-（R5）TB 配置 + PDK deck 配置
-        │
-        ▼
-   SimulationDeck（在结构网表之上拼装）
 ```
 
 IR 是唯一电气事实；printer 是纯函数，不读 DOM、不读文件、不查 PDK。
@@ -194,24 +185,12 @@ v1 只交付 `sky130` 一个 process；`abstract`、`ihp-sg13g2`、`gf180mcu` �
       "params": { "w": "w", "l": "l", "m": "m", "nf": "nf" },
       "required": ["w", "l"]
     }
-  },
-  "deck": {
-    "spice": {
-      "lib": ".lib \"$SKY130/libs.tech/ngspice/sky130.lib.spice\" {corner}"
-    },
-    "spectre": {
-      "include": "include \"$SKY130/libs.tech/spectre/sky130.lib.scs\" section={corner}"
-    }
-  },
-  "corners": ["tt", "ff", "ss", "fs", "sf"]
+  }
 }
 ```
 
 说明：
 
-- `deck` 只给 R5 用，printer v1 不读它。
-- `$SKY130` 是用户环境变量/路径占位符，不打包 PDK，不猜测安装位置。
-- Spectre 的模型库是否随本地 sky130 安装提供，需要实测；如果不可用，`include` 路径必须可配置，并在 deck 里给出明确错误。
 - 模型名由工艺预设提供，也可在单个器件的属性中覆盖。预设切换只更新继承工艺默认值的器件。自定义工艺允许直接输入模型名。编辑器不搜索本机 PDK。
 - B 端映射沿用第 5.3 节的 MOS 体端规则。
 - R/C/L 默认按原生器件输出，显式选择模型后按对应的模型实例输出。
@@ -324,128 +303,9 @@ R1 只做壳，R2 填满：
 - 语法：检查 SPICE 和 Spectre 的结构网表是否符合各自方言。R2 验收可使用离线语法检查和 golden 对拍，无需安装仿真器、加载目标 PDK 或运行仿真。
 - 性能：1000 个器件的文档，网表生成 < 500ms（开发机），UI 不卡顿。
 
-## 11. Simulation deck（R5）
-
-结构网表（第 1–8 节）是 deck 的一部分，但 deck 不等于结构网表。
-
-### 11.1 组成
-
-```
-SimulationDeck =
-  Header（注释 + 方言）
-  + PDK 环境（.lib / include，来自 profile 的 deck 配置）
-  + 参数（.param / parameters，可选）
-  + 温度（.temp / temp）
-  + TB 顶层（源、负载、DUT 实例）
-  + 分析（.op / .dc / .ac / .tran / .noise）
-  + 保存（.save / save）
-  + 结束（.end，按方言）
-  + 内联的 DUT 结构网表（v1 单文件；后续可拆分 include）
-```
-
-v1 默认输出**单文件**：先放 DUT 的 subckt，再放 TB top、环境、分析。这样用户下载一个文件就能跑，不依赖额外的 `dut.sp`。
-
-### 11.2 TB 元数据
-
-TB 是普通 Sheet，项目里用 `testbenches` 标记：
-
-```jsonc
-{
-  "id": "tb1",
-  "name": "ac_tb",
-  "sheetId": "s_tb",
-  "dut": { "sheetId": "s_amp", "ref": "XDUT" },
-  "supplies": { "vdd": "VDD", "vss": "VSS" },
-  "corner": "tt",
-  "temperature": "27",
-  "analyses": [
-    { "type": "op" },
-    { "type": "ac", "sweep": "dec", "points": 10, "start": "1", "stop": "1G" },
-    { "type": "tran", "step": "1p", "stop": "20n" }
-  ],
-  "saves": ["v(in)", "v(out)"]
-}
-```
-
-- `dut.sheetId` 指向被测子图；`dut.ref` 是 TB 图里 SheetBlock 的位号。
-- `supplies` 是 TB 图里电源网络的映射；缺省用 `VDD`/`VSS`。
-- `analyses` v1 只支持 op/dc/ac/tran/noise；参数用字符串，printer 原样输出。
-- `corner` 必须在 profile 的 `corners` 里；`temperature` 是字符串（单位摄氏度）。
-- TB 图本身仍然由用户画：源、负载、DUT 块、连线；元数据只描述“怎么仿真”。
-
-### 11.3 SPICE 示例
-
-```spice
-* ac_tb
-.lib "$SKY130/libs.tech/ngspice/sky130.lib.spice" tt
-.temp 27
-.param vdd=1.8
-
-.subckt amp IN OUT VDD VSS
-XM1 OUT IN VSS VSS sky130_fd_pr__nfet_01v8 w=1u l=0.15u
-R1 VDD OUT 1k
-.ends amp
-
-VDD VDD 0 1.8
-VIN IN 0 DC 0.9 AC 1
-XDUT IN OUT VDD 0 amp
-CLOAD OUT 0 10f
-
-.op
-.ac dec 10 1 1G
-.save v(IN) v(OUT)
-.end
-```
-
-### 11.4 Spectre 示例
-
-```spectre
-// ac_tb
-simulator lang=spectre
-include "$SKY130/libs.tech/spectre/sky130.lib.scs" section=tt
-parameters vdd=1.8
-
-subckt amp (IN OUT VDD VSS)
-M1 (OUT IN VSS VSS) sky130_fd_pr__nfet_01v8 w=1u l=0.15u
-R1 (VDD OUT) resistor r=1k
-ends amp
-
-VDD (VDD 0) vsource dc=1.8
-VIN (IN 0) vsource dc=0.9 mag=1
-XDUT (IN OUT VDD 0) amp
-CLOAD (OUT 0) capacitor c=10f
-
-op
-ac dec=10 start=1 stop=1G
-save v(IN) v(OUT)
-```
-
-- 方言细节（`ac` 参数写法、`save` 语法）由 printer 负责；TB 元数据不写语法。
-- 不把 `.model` 卡写进 deck；模型库由 `include`/`.lib` 提供。
-- 不在 deck 里做扫参、Monte Carlo、测量；这些是后续版本。
-
-### 11.5 校验
-
-Deck 生成前必须检查：
-
-- TB 图里存在 `dut.ref` 对应的 SheetBlock，且目标 `sheetId` 一致。
-- DUT 的所有端口在 TB 图里已连接。
-- 至少一个源；至少一个分析。
-- `corner` 在 profile 里；`temperature` 可解析。
-- `saves` 里的网络存在（或允许 `v(...)` 由仿真器解析，给 warning）。
-- 结构网表本身没有 error；有 error 时 deck 不生成。
-
-### 11.6 验收
-
-- sky130 反相器、差分对的 TB deck 能在 ngspice 跑通；Spectre 按本地 PDK 实测。
-- 单文件 deck 不依赖外部 `dut.sp`；include/lib 路径来自 profile，可被用户覆盖。
-- 修改 TB 图或 DUT 后重新生成，deck 与结构网表一致。
-- 浏览器内不执行仿真；不引入 wasm/服务端。
-
-## 12. 开放问题
+## 11. 开放问题
 
 1. `vdd` 符号的默认网络名是 `VDD` 还是取标签？多个 `vdd` 是否自动并网？
 2. sky130 的显式 B 端是否需要提供可选的默认接地设置？当前悬空时分配占位网络并报告错误。
-3. 结构网表是否需要 `.global` 声明？v1 建议不输出，由 deck 决定。
-4. Spectre 的 subckt 实例名是否保留 `M1`，还是也加 `X`？当前按“保留原 ref”。
-5. 物理 R/C 映射是否进入 R2.5，还是等 v2？
+3. Spectre 的 subckt 实例名是否保留 `M1`，还是也加 `X`？当前按“保留原 ref”。
+4. 物理 R/C 映射是否进入 R2.5，还是等 v2？

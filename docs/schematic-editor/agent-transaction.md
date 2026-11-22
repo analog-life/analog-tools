@@ -1,7 +1,7 @@
 # Agent 事务协议与本地 MCP
 
 状态：Draft 0.1 · 2026-11-19
-关联：[upgrade-plan.md](upgrade-plan.md)（R6）、[sheet-hierarchy.md](sheet-hierarchy.md)
+关联：[upgrade-plan.md](upgrade-plan.md)（R5）、[sheet-hierarchy.md](sheet-hierarchy.md)
 
 ## 1. 目的与边界
 
@@ -258,7 +258,7 @@
 - 页面在默认使用下零网络请求（DevTools Network 为空）。
 - 审阅对话框对 2 MiB/500 ops 边界有明确错误。
 
-## 11. 非目标（R6）
+## 11. 非目标（R5）
 
 - 不做站内 LLM 对话；不内置 API key。
 - 不做自动联网、后台重连、遥测。
