@@ -1,8 +1,8 @@
 # Schematic Editor 交接文档
 
-状态：R3 进行中 · 2026-11-21
+状态：R1–R3 完整回归通过，可进入 R4 · 2026-11-22
 源码仓库：`source/schematic-editor/`（独立 git 仓库）
-已推送的源码基线：`3c08b76` `完成图层导出与整体回归`（`origin/main`），覆盖 Layers 1E 和 1F。
+已推送的验收基线：`e7b4824`（`origin/main`）。功能提交为 `65fcdaf`，后续提交 `e7b4824` 修正浏览器测试对属性标签换行的测量方式。
 源码提交 `1840475` 实现了 1B 图层归属模型，`432c4df` 实现了 1C 图层改派与按活动层放置，`904d0d4` 将文档栏剪贴板导入统一到文件导入流程。内测文档格式遵循仓库 `AGENTS.md`。
 
 这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
@@ -21,7 +21,7 @@
 当前最重要的约束：
 
 - **不要恢复上一版自定义自由图形实现。** `shapeModel.ts`、`shapeRenderer.ts`、`shapeSvgRenderer.ts` 已删除，也不再使用 `annotation + shape:*` 表示图形。
-- 自由图形走 Library 的无引脚组件路径，当前有 `rectangle`、`triangle`、`polyline` 和 `arc`。
+- 自由图形走 Library 的无引脚组件路径，包含 `rectangle`、`triangle`、`polyline`、`arc`、`circle` 和 `polygon`。
 - 不要直接改站点 `app/schematic/`。源码和站点发布是待人工同步的两个区域。
 
 ---
@@ -71,37 +71,39 @@ scripts/              浏览器 smoke 测试
 
 ## 4. 当前进度
 
-### R1：面板容器与反馈 —— 主体完成
+### R1：面板容器与反馈 —— 验收通过
 
 已落地：
 
 - 左侧栏 `Library / Properties / Layers` 标签。
 - Library 全器件列表、搜索、预览、单击放置。
 - `i` 三栏浏览器（分类 / 器件 / 预览），保留键盘连续放置。
-- 右侧 Dock：`Analysis / Netlist / Diagnostics` 标签，可收起/调宽。
+- 右侧 Dock：`Analysis / Netlist` 两个标签，单视图切换，可收起、调宽和恢复上次打开的视图。诊断位于 Netlist 内。
 - 底部日志抽屉，`Ctrl+Shift+L` 打开；可拖动高度。
 - UI 布局持久化到 `at-schematic-layout`；Web 文档持久化使用 `adc-helper-schematic:<id>`。
 - 状态栏、诊断计数、日志入口。
 
-说明：规格中的 375px、768px、1080px 断点验收、深色模式对比度和 i18n 键检查尚未在最近一次交接中逐项重跑；不要因为功能可用就认为 R1 验收已全部关闭。
+R1 浏览器回归覆盖 375、768、1080 px 下的 Library、`i` 浏览器、右栏拖拽和重载恢复。无效 JSON 导入可在错误筛选中定位，导出的电路 JSON 不包含日志。新增跨线与字体文案已接入 i18n 键。
 
-### R2：结构化网表 —— 大体完成
+独立 Web 版的 Options 支持 English、简体中文，以及跟随系统、亮色和暗色。默认使用英文并跟随系统颜色，设置仅存于当前浏览器，同时应用于 Help 页面。运行 `npm run test:preferences` 可验证动态参数汉化、深色对比度、375 px 下的 Options、刷新恢复和网表一致性。
+
+### R2：结构化网表 —— 已通过本轮验收
 
 已落地：
 
 - 整张图生成一个 subckt；画布网络标签/端口变成 subckt 端口。
 - 电源/地器件生成 `VDD/GND` 端口。
 - SPICE 与 Spectre 输出。
-- sky130 / GF180MCU / IHP SG13G2 / Custom 工艺选择。
-- NMOS/PMOS/NPN/PNP/R/C/L 器件类型选择。
+- Options 提供 SKY130、GF180MCU、IHP SG13G2 和自定义工艺。默认模型跟随工艺，工艺随当前电路保存。
+- NMOS、PMOS、NPN、PNP、R、C、L 支持单器件模型覆盖。显式模型随器件保存在原理图 JSON 中，切换工艺时保留。自定义工艺允许直接填写模型名。
 - MOS 的 `W/L/M/NF`；缺参数时生成带默认值的 `parameters`（Virtuoso 风格）。
 - 悬空引脚仍生成 `netN`，同时保留 diagnostics。
-- Netlist 面板：格式/工艺选择、行号、复制/下载、诊断直接显示在网表下方。
+- Netlist 面板提供格式切换、行号、复制和下载。网表与诊断上下等高，各自滚动。
 - ERC：悬空引脚、重复位号、缺模型、缺参数、不支持器件等。
 
-仍需按 [netlist-ir.md](netlist-ir.md) 做验收补齐，例如 golden 电路、真实 ngspice 验证、更多 ERC 细节。不要仅因为面板能显示网表就认为 R2 全部验收完成。
+R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载结构网表。已补齐缺失或格式无效的模型名、名称冲突、MOS 参数边界及显式体端悬空等负例。点击器件诊断会选中并居中。RC 低通、MOS 共源和差分对的六份 golden 已通过离线语法及 JSON 重载逐字节对拍。1000 器件串联电路的 IR 构建与两种格式输出，五次测得 31.3–66.6 ms，低于 500 ms 的验收上限。仿真器和目标 PDK 实测留到后续仿真阶段。详见 [网表规格](netlist-ir.md)。
 
-### R3：显示与图形 —— 进行中，已重置图形路线
+### R3：显示与图形 —— 源码验收通过
 
 当前已落地：
 
@@ -167,9 +169,12 @@ scripts/              浏览器 smoke 测试
 - 选择 `polygon` 后逐个添加顶点。放置第二个顶点后，预览保留已绘制边并连接目标点与上一顶点和起点。至少三个不共线的顶点后，点击起点、双击终点、按 Enter 或点「完成多边形」闭合，Esc 取消。选中后可独立拖动顶点。最多可画 256 个顶点，`values.polygonPoints` 保存以包围盒中心为原点的有序局部坐标。
 - 两种图形沿用矩形和三角形的颜色、线宽、线形、尺寸与填充属性。填充颜色使用预设色板和自定义取色器。图形随活动图层保存，画布、查看器和导出使用相同的闭合路径。
 
-当前已知不足：
+#### R3 第二步：交叉显示与字体
 
-- `plain/hop` 交叉显示和注释/标签字体覆盖待实现。
+- Web 工具栏的 Options 提供 Wire crossings（Plain / Hop）和 Default text font。默认使用直线交叉和无衬线系统字体。跨线桥根据可见导线的图层和对象顺序绘制，真实连接仍使用圆点，电气连接与网表不随显示选项变化。
+- 单选注释或网络标签后，可在 Properties 的 Font 切换为无衬线、衬线、等宽字体，或恢复继承。字体使用含中文回退的系统字体栈。文档 JSON 保存 `display.wireCrossings`、`display.textFont`，及对象的可选 `fontFamily`。更改支持撤销、重做及刷新恢复。
+- 画布、SVG、PNG 和只读查看器沿用相同的跨线规则及字体。浏览器回归命令为 `npm run test:r3:display`。
+- 同一构建串跑 Library 图形、折线、弧形、闭合图形、Layers 和 Display。三层 RC 流程覆盖 Hop 及字体覆盖、层序和显隐、图片导出和 JSON 重导入，并逐步对拍 SPICE、Spectre 与诊断。
 
 #### 放置点击修复
 
@@ -245,8 +250,8 @@ scripts/              浏览器 smoke 测试
 |---|---|
 | `netlist/build.ts` | 图 → netlist IR |
 | `netlist/profiles.ts` | 工艺/器件映射 |
-| `netlist/spice.ts` / `spectre.ts` | printer |
-| `netlist/erc.ts` | 诊断 |
+| `netlist/print.ts` | SPICE / Spectre printer |
+| `netlist/build.ts` 的诊断分支 | ERC 与诊断来源 |
 | `netlist/panel.ts` | 右栏 Netlist 视图 |
 
 ### 图形当前实现位置
@@ -286,6 +291,19 @@ npm.cmd run build:web
 ```
 
 `npm test` 会先 `build:lib`，再跑 schematic 与 obsidian 测试。
+
+### R4 启动前的完整回归
+
+在 `e7b4824` 的功能代码上验证了库、Web 和 Obsidian 构建及工作区类型检查。启用 `RUN_SLOW_TESTS=1` 后，Schematic 167 个测试文件、1909 项通过，Obsidian 9 个测试文件、70 项通过。包含默认关闭的 RLC 符号分析和大图 SVG 性能测试。Vite 仍报告构建分块大小提醒。
+
+Edge 共通过 13 个浏览器脚本：
+
+- R1：`r1-smoke`、`web-preferences-smoke`。覆盖 375 / 768 / 1080 px、两种器件入口、右栏恢复、中英文和三种主题模式、中文日志和错误筛选、无效导入、Help。
+- R2：`r2-smoke`。覆盖工艺与七类单器件模型、两种格式输出、撤销重做和刷新恢复、网表与诊断等高、错误定位、复制、下载。六份 golden 和离线语法由单元测试覆盖。
+- R3：`r3-library-shapes`、`r3-polyline`、`r3-arc`、`r3-closed-shapes`、`r3-layers`、`r3-display`。覆盖六种图形、急弯箭头、图层显隐与锁定、导线拆分、跨线、字体、SVG/PNG 和三层 RC 电路的 SPICE/Spectre 一致性。
+- 通用：`browser-smoke`、`interaction-smoke`、`persistence-smoke`、`placement-jitter`。覆盖连线与节点编辑、元件参数、符号分析、撤销重做、刷新、存储配额与跨页写入冲突。
+
+交互测试用实际文本行检查属性标签换行。首次并行启用长测时 Vitest 的 worker 通信超时；长测单独运行通过，随后限制到四个 worker 的全量测试也通过。
 
 图层功能的历史验证基线为源码提交 `156c903`（已推送 `origin/main`）：
 
@@ -378,14 +396,9 @@ npm.cmd run dev
 
 ## 8. 建议的下一步
 
-按“一小步一小步”的方式继续，不要一次性恢复旧的 8 种自定义图形。
-
-优先级建议：
-
-1. **R3 剩余独立项**
-   - `plain/hop` 交叉显示。
-   - 注释/标签字体覆盖。
-2. **R3 完成后再进入 R4**，避免 schema 和 UI 同时大改。
+1. 先核对 [R4 层级规格](sheet-hierarchy.md) 的项目包边界。Sheet 应沿用当前 `SchematicContent`，保留图层与对象显隐、跨线、字体、工艺和单器件模型。缩放、面板、日志与界面偏好继续在文档之外保存。
+2. 用 Top 引用一个电阻分压 Sheet 完成纵向验证。先用项目上下文解析 `SheetBlock` 端口，以稳定的端口 ID 保存连线，再验证 SPICE 和 Spectre 的子电路定义、实例与端口顺序。
+3. 验证当前单图 JSON 可打开为单 Sheet 项目，再扩展到三级嵌套、端口改名与删除、循环和缺失引用诊断。输入格式遵循内测规则。
 
 ---
 

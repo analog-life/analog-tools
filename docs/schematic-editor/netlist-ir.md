@@ -98,7 +98,7 @@ IR 中不出现：`format`、`include`、`analysis`、`x/y`、`color`、`selecte
 ### 4.2 名称合法性
 
 - 必须匹配 `[A-Za-z_][A-Za-z0-9_]*`；不允许空格、`+`、`-`、`.`、`:`、中文。
-- 大小写不敏感唯一；冲突是错误，不自动改名（自动改名会让标签与网表脱节）。
+- 名称按大小写不敏感检查。仅大小写不同的独立网络会报告错误，并为后出现的网络分配网表占位名，防止两个独立网络合并。电路标签本身保留。
 - 以数字开头的名字加前缀 `n_`，并在诊断里警告。
 - 保留字（`0`、`gnd`、`vdd`、`vss`、`subckt`、`ends`、`model`、`include`、`lib`、`param`、`options`、`end`）按方言处理；与端口/实例名冲突时报错。
 
@@ -161,15 +161,15 @@ MOS 的尺寸参数存放在 `ComponentInstance.values`，使用固定键名：
 
 | 键 | 含义 | 默认 | 必填（sky130） |
 |---|---|---|---|
-| `mos:w` | 沟道宽度 | 无 | 是 |
-| `mos:l` | 沟道长度 | 无 | 是 |
+| `mos:w` | 沟道宽度 | 缺省生成符号参数，默认值 `1u` | 可留空 |
+| `mos:l` | 沟道长度 | 缺省生成符号参数，默认值 `0.15u` | 可留空 |
 | `mos:m` | 并联倍数 | `1` | 否 |
 | `mos:nf` | 指状数 | `1` | 否 |
 
 - 属性面板在 MOS 选中时显示这四项；单位按工程值输入（`1u`、`0.15u`）。
 - 导出时把键映射为 profile 的参数名（sky130：`w/l/m/nf`），不直接把 `mos:w` 写进网表。
-- 3 端 MOS 变体（没有 B 引脚）不能用于 sky130 导出：报 `BULK_UNCONNECTED`，并提示切换到 4 端变体或连接 B。
-- 4 端变体的 B 必须连接到网络；不默认接地。
+- 3 端 MOS 变体（没有 B 引脚）的体端使用源极网络，并记录 `BULK_DEFAULTED` 警告。
+- 4 端变体的 B 悬空时分配占位网络，记录 `BULK_UNCONNECTED` 错误，继续生成网表。
 - 符号视图（`variantId`）只影响画法，不影响网表；网表按引脚角色取值，不按变体名。
 - 输出规则：`w`/`l` 必须输出；`m`/`nf` 仅在用户显式设置且不是默认 `1` 时输出，避免每行都带默认值。
 
@@ -212,9 +212,9 @@ v1 只交付 `sky130` 一个 process；`abstract`、`ihp-sg13g2`、`gf180mcu` �
 - `deck` 只给 R5 用，printer v1 不读它。
 - `$SKY130` 是用户环境变量/路径占位符，不打包 PDK，不猜测安装位置。
 - Spectre 的模型库是否随本地 sky130 安装提供，需要实测；如果不可用，`include` 路径必须可配置，并在 deck 里给出明确错误。
-- 模型名只做映射，不做 PDK 搜索。用户改 profile 即可换 device flavor（`_lvt`、`_hvt` 等后续加）。
-- B 端规则：sky130 MOS 的 B 必须连接到网络。未连接是错误 `BULK_UNCONNECTED`，不默认接地（默认接地在部分电路里是错的）。
-- 理想 R/C/L 不映射到 `sky130_fd_pr__res_*` / `cap_*`；v1 保留原生器件。
+- 模型名由工艺预设提供，也可在单个器件的属性中覆盖。预设切换只更新继承工艺默认值的器件。自定义工艺允许直接输入模型名。编辑器不搜索本机 PDK。
+- B 端映射沿用第 5.3 节的 MOS 体端规则。
+- R/C/L 默认按原生器件输出，显式选择模型后按对应的模型实例输出。
 
 ## 7. Printer 规则
 
@@ -223,7 +223,7 @@ v1 只交付 `sky130` 一个 process；`abstract`、`ihp-sg13g2`、`gf180mcu` �
 - printer 是纯函数：`print(design, options) => string`；不读文件、不查 PDK、不访问 DOM。
 - 输出使用 `\n`；结尾保留一个换行；不写时间戳、用户名、绝对路径。
 - 子电路依赖在前；同一层内按文档顺序；不排序实例名（排序会改变用户阅读顺序）。
-- 所有标识符在输出前做最终校验；有任一 error 时**不输出部分网表**，只返回诊断。
+- 输出前校验标识符。生成流程同时返回可输出的结构网表和诊断。无法输出的实例由诊断标明，有可用回退的实例按相应规则输出。
 - 注释只使用 ASCII，避免编码问题。
 
 ### 7.2 SPICE
@@ -273,29 +273,32 @@ interface NetlistDiagnostic {
 }
 ```
 
-| 代码 | 级别 | 含义 | 是否阻塞 |
-|---|---|---|---|
-| `FLOATING_PIN` | error | 引脚没有网络 | 是 |
-| `SINGLE_PIN_NET` | warning | 只有一个引脚的网络 | 否 |
-| `DUPLICATE_REF` | error | 同一子图内位号重复 | 是 |
-| `INVALID_REF_PREFIX` | error | 位号前缀与器件类别不符 | 是 |
-| `UNSUPPORTED_DEVICE` | error | v1 不支持该器件 | 是 |
-| `UNSUPPORTED_SOURCE` | error | 源波形不支持 | 是 |
-| `MISSING_MODEL` | error | 没有可用的 master | 是 |
-| `MISSING_PARAM` | error | 缺少必填参数（如 w/l） | 是 |
-| `INVALID_VALUE` | error | 数值无法解析 | 是 |
-| `BULK_UNCONNECTED` | error | sky130 MOS 的 B 未连接 | 是 |
-| `NAME_COLLISION` | error | 网络/端口/实例名冲突 | 是 |
-| `GLOBAL_CONFLICT` | error | 全局网与端口/标签冲突 | 是 |
-| `NO_TOP_SHEET` | error | 没有顶层子图（R4） | 是 |
-| `CYCLE` | error | 子图循环引用（R4） | 是 |
-| `MISSING_SHEET` | error | 子图实例指向不存在的子图（R4） | 是 |
-| `UNBOUND_PORT` | error | 子图端口未连接（R4） | 是 |
+| 代码 | 级别 | 含义 |
+|---|---|---|
+| `FLOATING_PIN` | error | 引脚没有网络 |
+| `SINGLE_PIN_NET` | warning | 只有一个引脚的网络 |
+| `DUPLICATE_REF` | error | 同一子图内位号重复 |
+| `INVALID_REF_PREFIX` | error | 位号前缀与器件类别不符 |
+| `UNSUPPORTED_DEVICE` | error | v1 不支持该器件 |
+| `UNSUPPORTED_SOURCE` | error | 源波形不支持 |
+| `MISSING_MODEL` | error | 没有可用的 master |
+| `INVALID_MODEL` | error | 模型名不是合法的标识符 |
+| `MISSING_PARAM` | error | 缺少无法使用默认值的必填参数 |
+| `DEFAULT_PARAM` | warning | 参数留空，使用带默认值的符号参数 |
+| `INVALID_VALUE` | error | 数值无法解析 |
+| `BULK_DEFAULTED` | warning | 三端 MOS 体端使用源极网络 |
+| `BULK_UNCONNECTED` | error | 显式体端未连接，使用占位网络 |
+| `NAME_COLLISION` | error | 网络/端口/实例名冲突 |
+| `GLOBAL_CONFLICT` | error | 全局网与端口/标签冲突 |
+| `NO_TOP_SHEET` | error | 没有顶层子图（R4） |
+| `CYCLE` | error | 子图循环引用（R4） |
+| `MISSING_SHEET` | error | 子图实例指向不存在的子图（R4） |
+| `UNBOUND_PORT` | error | 子图端口未连接（R4） |
 
 规则：
 
-- 任一 error → 没有 IR、没有文本；面板显示错误列表。
-- warning 不阻塞，但必须在面板和日志里可见。
+- R2 的 error 和 warning 都不阻塞结构网表生成、复制或下载。面板同时显示生成结果和诊断。
+- warning 必须在面板和日志里可见。
 - 诊断必须带对象 id，用户点击后能选中并居中。
 - 诊断消息模板可翻译；代码不翻译。
 
@@ -303,12 +306,12 @@ interface NetlistDiagnostic {
 
 R1 只做壳，R2 填满：
 
-- 顶部：格式 `SPICE / Spectre` 分段按钮；工艺 `sky130` 下拉（v1 只有一项）；`Copy`、`Download`。
-- 状态：`Ready` / `Blocked (N errors)` / `Stale`；阻塞时按钮禁用。
+- 顶部提供 `SPICE / Spectre` 格式切换、`Copy` 和 `Download`。工艺设置位于 Options，支持 SKY130、GF180MCU、IHP SG13G2 和自定义。
+- 状态：无生成结果时显示 `Netlist is not ready.`，并禁用复制和下载。有结果且存在错误时显示 `Generated · N error(s)`，保留复制和下载入口。警告显示在 `Ready` 状态中。
 - 正文：等宽字体、行号、横向滚动；SPICE 标题行和 Spectre 语言行可见。
-- 诊断：视图底部或 `Diagnostics` 视图联动；点击错误选中对象。
-- 刷新：文档变化后 debounce 300ms 重算；视图关闭时暂停；重新打开时立即重算。
-- 状态记忆：格式、工艺、滚动位置、诊断过滤；格式/工艺存 `at-schematic-netlist`。
+- 网表和诊断上下等分剩余高度，分别滚动。点击器件诊断可选中并居中定位该器件。
+- 刷新：浏览器将连续的文档更新合并，在 250 ms 后重算。
+- 工艺保存到原理图 JSON 的 `schematic.netlistProcess`，省略时采用 SKY130。NMOS、PMOS、NPN、PNP、R、C、L 的单器件模型保存到该器件的 `values["netlist:model"]`。
 - v1 只读，不允许在面板里改网表；不做 SPICE/Spectre 导入。
 
 ## 10. 测试与验收
@@ -316,9 +319,9 @@ R1 只做壳，R2 填满：
 - 单元测试：规范化命名、引脚顺序、实例前缀、参数校验、诊断。
 - Golden：RC 低通、MOS 共源、差分对；SPICE 与 Spectre 各一份；含 sky130 MOS。
 - 确定性：同一文档运行两次、重载后再运行，输出逐字节一致。
-- 负例：悬空引脚、重复位号、缺 W/L、B 未连接、逻辑门、未知源波形；必须阻塞且诊断可定位。
+- 负例：悬空引脚、重复位号、缺 W/L、显式 B 未连接、逻辑门、未知源波形。验证网表仍可生成和导出，并核对实例省略、参数回退及诊断定位。
 - 不受显示影响：缩放、选择、图层、字体、跨线样式变化后网表不变。
-- 语法：在装有 ngspice 的机器上 `ngspice -b` 通过；Spectre 用本地 PDK 的 parser 或实际仿真验证（按环境）。
+- 语法：检查 SPICE 和 Spectre 的结构网表是否符合各自方言。R2 验收可使用离线语法检查和 golden 对拍，无需安装仿真器、加载目标 PDK 或运行仿真。
 - 性能：1000 个器件的文档，网表生成 < 500ms（开发机），UI 不卡顿。
 
 ## 11. Simulation deck（R5）
@@ -442,7 +445,7 @@ Deck 生成前必须检查：
 ## 12. 开放问题
 
 1. `vdd` 符号的默认网络名是 `VDD` 还是取标签？多个 `vdd` 是否自动并网？
-2. sky130 的 B 端是否允许“默认接 0 + 警告”作为可选设置？当前规格定为阻塞。
+2. sky130 的显式 B 端是否需要提供可选的默认接地设置？当前悬空时分配占位网络并报告错误。
 3. 结构网表是否需要 `.global` 声明？v1 建议不输出，由 deck 决定。
 4. Spectre 的 subckt 实例名是否保留 `M1`，还是也加 `X`？当前按“保留原 ref”。
 5. 物理 R/C 映射是否进入 R2.5，还是等 v2？
