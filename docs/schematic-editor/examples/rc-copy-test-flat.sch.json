@@ -1,0 +1,53 @@
+{
+  "format": "adc-helper/schematic",
+  "schematic": {
+    "symbolTemplate": "razavi",
+    "components": [
+      {
+        "type": "voltageSource", "ref": "V1", "x": 160, "y": 360, "rotation": 90, "mirrored": false, "variantId": "dc", "id": "source",
+        "values": {"main": "1"}
+      },
+      {"type": "resistor", "ref": "R1", "x": 380, "y": 210, "rotation": 0, "mirrored": false, "id": "flat-r1",
+        "values": {"main": "4.7k"}},
+      {"type": "capacitor", "ref": "C1", "x": 530, "y": 340, "rotation": 90, "mirrored": false, "id": "flat-c1",
+        "values": {"main": "47n"}},
+      {"type": "resistor", "ref": "R2", "x": 640, "y": 340, "rotation": 90, "mirrored": false, "id": "flat-r2",
+        "values": {"main": "100k"}},
+      {"type": "resistor", "ref": "R3", "x": 780, "y": 210, "rotation": 0, "mirrored": false, "id": "flat-r3",
+        "values": {"main": "4.7k"}},
+      {"type": "capacitor", "ref": "C2", "x": 930, "y": 340, "rotation": 90, "mirrored": false, "id": "flat-c2",
+        "values": {"main": "47n"}},
+      {"type": "resistor", "ref": "R4", "x": 1040, "y": 340, "rotation": 90, "mirrored": false, "id": "flat-r4",
+        "values": {"main": "100k"}},
+      {"type": "gnd", "ref": "GND", "x": 160, "y": 590, "rotation": 0, "mirrored": false, "id": "ground",
+        "values": {}}
+    ],
+    "wires": [
+      {"points": [{"x": 160, "y": 320}, {"x": 160, "y": 210}, {"x": 340, "y": 210}], "routeMode": "orthogonal", "id": "flat-input"},
+      {"points": [{"x": 420, "y": 210}, {"x": 530, "y": 210}], "routeMode": "orthogonal", "id": "flat-a-tee"},
+      {"points": [{"x": 530, "y": 210}, {"x": 640, "y": 210}], "routeMode": "orthogonal", "id": "flat-a-run"},
+      {"points": [{"x": 640, "y": 210}, {"x": 740, "y": 210}], "routeMode": "orthogonal", "id": "flat-a-out"},
+      {"points": [{"x": 530, "y": 210}, {"x": 530, "y": 300}], "routeMode": "orthogonal", "id": "flat-a-cap"},
+      {"points": [{"x": 640, "y": 210}, {"x": 640, "y": 300}], "routeMode": "orthogonal", "id": "flat-a-load"},
+      {"points": [{"x": 820, "y": 210}, {"x": 930, "y": 210}], "routeMode": "orthogonal", "id": "flat-b-tee"},
+      {"points": [{"x": 930, "y": 210}, {"x": 1040, "y": 210}], "routeMode": "orthogonal", "id": "flat-b-run"},
+      {"points": [{"x": 1040, "y": 210}, {"x": 1150, "y": 210}], "routeMode": "orthogonal", "id": "flat-b-out"},
+      {"points": [{"x": 930, "y": 210}, {"x": 930, "y": 300}], "routeMode": "orthogonal", "id": "flat-b-cap"},
+      {"points": [{"x": 1040, "y": 210}, {"x": 1040, "y": 300}], "routeMode": "orthogonal", "id": "flat-b-load"},
+      {"points": [{"x": 160, "y": 400}, {"x": 160, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-vin"},
+      {"points": [{"x": 160, "y": 510}, {"x": 160, "y": 570}], "routeMode": "orthogonal", "id": "flat-return-ground"},
+      {"points": [{"x": 160, "y": 510}, {"x": 530, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-1"},
+      {"points": [{"x": 530, "y": 510}, {"x": 640, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-2"},
+      {"points": [{"x": 640, "y": 510}, {"x": 930, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-3"},
+      {"points": [{"x": 930, "y": 510}, {"x": 1040, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-4"},
+      {"points": [{"x": 530, "y": 380}, {"x": 530, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-c1"},
+      {"points": [{"x": 640, "y": 380}, {"x": 640, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-r2"},
+      {"points": [{"x": 930, "y": 380}, {"x": 930, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-c2"},
+      {"points": [{"x": 1040, "y": 380}, {"x": 1040, "y": 510}], "routeMode": "orthogonal", "id": "flat-return-r4"}
+    ],
+    "connections": {"wires": {"flat-input": ["node-43", "node-1", "node-45"], "flat-a-tee": ["node-46", "node-4"], "flat-a-run": ["node-4", "node-6"], "flat-a-out": ["node-6", "node-51"], "flat-a-cap": ["node-4", "node-47"], "flat-a-load": ["node-6", "node-49"], "flat-b-tee": ["node-52", "node-14"], "flat-b-run": ["node-14", "node-16"], "flat-b-out": ["node-16", "node-18"], "flat-b-cap": ["node-14", "node-53"], "flat-b-load": ["node-16", "node-55"], "flat-return-vin": ["node-44", "node-24"], "flat-return-ground": ["node-24", "node-57"], "flat-return-1": ["node-24", "node-28"], "flat-return-2": ["node-28", "node-30"], "flat-return-3": ["node-30", "node-32"], "flat-return-4": ["node-32", "node-34"], "flat-return-c1": ["node-48", "node-28"], "flat-return-r2": ["node-50", "node-30"], "flat-return-c2": ["node-54", "node-32"], "flat-return-r4": ["node-56", "node-34"]}, "pins": {"source": {"p": "node-43", "n": "node-44"}, "flat-r1": {"p": "node-45", "n": "node-46"}, "flat-c1": {"p": "node-47", "n": "node-48"}, "flat-r2": {"p": "node-49", "n": "node-50"}, "flat-r3": {"p": "node-51", "n": "node-52"}, "flat-c2": {"p": "node-53", "n": "node-54"}, "flat-r4": {"p": "node-55", "n": "node-56"}, "ground": {"g": "node-57"}}},
+    "junctionAppearances": [],
+    "netLabels": [{"id": "label-vin", "name": "VIN", "attachment": {"wireId": "flat-input", "point": {"x": 230, "y": 210}}}, {"id": "label-out_a", "name": "OUT_A", "attachment": {"wireId": "flat-a-out", "point": {"x": 690, "y": 210}}}, {"id": "label-out_b", "name": "OUT_B", "attachment": {"wireId": "flat-b-out", "point": {"x": 1100, "y": 210}}}],
+    "notes": []
+  }
+}
