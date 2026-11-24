@@ -4,129 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<script>
-/* 目录地址缺少末尾斜杠时，修正相对资源与链接的基准路径 */
-(function () {
-  var path = location.pathname;
-  if (!/\/$/.test(path) && !/\.[^/]*$/.test(path)) {
-    var base = document.createElement("base");
-    base.href = path + "/";
-    document.head.appendChild(base);
-  }
-})();
-</script>
 <title>Schematic Editor · Analog Tools</title>
-<meta name="description" content="在浏览器中快速绘制简洁的模拟电路原理图：元件、导线、网络标签、注释与符号分析，全部本地完成。">
+<meta name="description" content="在浏览器中绘制电路原理图、管理子图、生成网表和导出图像。">
 <script>
-/* 尽早应用已保存的主题，避免页面闪烁 */
-(function () {
-  try {
-    var t = localStorage.getItem("at-theme");
-    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
-    var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.dataset.effectiveTheme = dark ? "dark" : "light";
-  } catch (e) { /* 忽略隐私模式下的异常 */ }
-})();
+if (!location.pathname.endsWith("/") && !/\.[^/]*$/.test(location.pathname)) {
+  const base = document.createElement("base");
+  base.href = location.pathname + "/";
+  document.head.append(base);
+}
 </script>
+<script src="./editor-preferences.js"></script>
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/style.css">
-<link rel="stylesheet" href="./assets/index-Dycg_2g4.css">
+<link rel="modulepreload" crossorigin href="./assets/jointjs-CXOFuMno.js">
+<link rel="stylesheet" crossorigin href="./assets/editor-DZWzNIj3.css">
+<link rel="stylesheet" crossorigin href="./assets/style-BOiV29gy.css">
 <link rel="stylesheet" href="./schematic.css">
-<script>
-window.MathJax = {
-  tex: {
-    inlineMath: [["\\(", "\\)"]],
-    displayMath: [["\\[", "\\]"]]
-  },
-  svg: { fontCache: "local" },
-  options: {
-    enableSpeech: false,
-    enableBraille: false,
-    a11y: { speech: false, braille: false },
-    safeOptions: {
-      allow: { URLs: "safe", classes: "safe", cssIDs: "safe", styles: "safe" },
-      safeProtocols: { http: true, https: true, file: false, javascript: false, data: false }
-    }
-  },
-  startup: { typeset: false }
-};
-</script>
-<script async src="./vendor/mathjax/tex-svg.js" onload="window.dispatchEvent(new Event('mathjax-ready'))"></script>
+<script type="module" crossorigin src="./assets/editor-Cv8yLXDW.js"></script>
 </head>
-<body class="schematic-page app-page">
-
-<svg class="bg-art" aria-hidden="true" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-  <path d="M-20 150 Q 90 50, 200 150 T 420 150 T 640 150 T 860 150 T 1080 150 T 1300 150 T 1520 150" fill="none"/>
-  <path d="M-20 205 Q 90 125, 200 205 T 420 205 T 640 205 T 860 205 T 1080 205 T 1300 205 T 1520 205" fill="none"/>
-  <path d="M-20 760 Q 120 660, 260 760 T 540 760 T 820 760 T 1100 760 T 1380 760 T 1660 760" fill="none"/>
-  <path d="M980 640 h150 v-90 h130" fill="none"/>
-  <circle cx="980" cy="640" r="4" class="dot"/>
-  <circle cx="1260" cy="550" r="4" class="dot"/>
-</svg>
-
-<header class="site-header app-header">
-  <div class="wrap header-inner">
-    <div class="header-left">
-      <a class="back" href="../" aria-label="返回工具列表">
-        <span class="back-arrow">←</span>
-        <span class="back-label" data-i18n="back">返回工具列表</span>
-      </a>
-      <span class="header-divider" aria-hidden="true"></span>
-      <a class="app-title" href="./">Schematic Editor</a>
-    </div>
-    <div class="tool-controls">
-      <a class="btn" href="./manual.html" data-i18n="manual">使用手册</a>
-      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
-        <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
-          <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        </svg>
-        <span class="lang-word">Language</span>
-        <span class="lang-value" id="lang-value">EN</span>
-      </button>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
-        <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-          <path d="M12 2.5 v2.5 M12 19 v2.5 M2.5 12 h2.5 M19 12 h2.5 M4.9 4.9 l1.8 1.8 M17.3 17.3 l1.8 1.8 M19.1 4.9 l-1.8 1.8 M6.7 17.3 l-1.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-        <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M20 14.5 A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
-  </div>
+<body class="schematic-page app-page" data-schematic-version="1.0.0-beta">
+<header class="schematic-site-heading" id="schematic-site-heading">
+  <a class="back" href="../" lang="zh-CN">← 返回工具列表</a>
+  <span class="header-divider" aria-hidden="true"></span>
+  <h1 class="app-title">Schematic Editor</h1>
 </header>
-
-<main class="wrap schematic-main">
-  <section class="editor-frame" aria-label="Schematic Editor">
-    <div id="app"></div>
-  </section>
-</main>
-
-<footer class="site-footer app-footer">
+<div id="app"></div>
+<footer class="site-footer app-footer" lang="zh-CN">
   <div class="wrap">
-    <p class="footer-credit">
-      <span data-i18n="creditPrefix">基于开源项目</span>
-      <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing Schematic Editor</a>
-      <span data-i18n="creditSuffix">（MIT 许可）· 原作者 RarityBrown</span>
-      <span class="footer-dot" aria-hidden="true">·</span>
-      <span data-i18n="privacy">绘制内容仅保存在本浏览器，不会上传。</span>
-    </p>
+    <p class="footer-credit">基于开源项目 <a href="https://github.com/KingsAnalog/GmKing-schematic-editor" target="_blank" rel="noopener">GmKing Schematic Editor</a>（MIT 许可）· 原作者 RarityBrown · 绘制内容仅保存在本浏览器，不会上传。</p>
     <p class="footer-meta">
       <span>© 2026 Analog Life</span>
-      <span class="beian-sep">·</span>
+      <span class="beian-sep" aria-hidden="true">·</span>
       <span class="beian">
         <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
-        <span class="beian-sep">·</span>
-        <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+        <span class="beian-sep" aria-hidden="true">·</span>
+        <a href="https://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
       </span>
     </p>
   </div>
 </footer>
+<script type="module">
+const app = document.getElementById("app");
+const header = document.getElementById("schematic-site-heading");
+const shell = app.querySelector("[data-schematic-shell]");
+if (shell) {
+  const sidebar = shell.querySelector("[data-schematic-palette]");
+  sidebar.querySelector(".schematic-sidebar-heading").remove();
+  shell.querySelector("[data-schematic-help]").href = "https://www.analog-life.com/tools/schematic/manual.html";
+  const fallbackLanguage = document.documentElement.dataset.siteLanguageFallback;
+  if (fallbackLanguage) {
+    const languageSelect = shell.querySelector("[data-schematic-language-select]");
+    languageSelect.value = fallbackLanguage;
+    languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 
-<script src="../assets/js/theme.js" defer></script>
-<script src="./schematic-i18n.js" defer></script>
-<script src="./schematic-ui.js" defer></script>
-<script type="module" src="./assets/index-D2LH0-RX.js"></script>
+  function placeHeading() {
+    const inSidebar = shell.classList.contains("is-left-panel-visible") && !shell.classList.contains("is-layout-narrow");
+    if (inSidebar && header.parentElement !== sidebar) sidebar.prepend(header);
+    if (!inSidebar && header.parentElement === sidebar) app.before(header);
+  }
+  placeHeading();
+  new MutationObserver(placeHeading).observe(shell, { attributes: true, attributeFilter: ["class"] });
+}
+</script>
 </body>
 </html>

@@ -1,1123 +1,130 @@
-/* ============================================================
-   Schematic Editor —— 页面与编辑器外观
-   在站点 style.css 与上游编辑器样式之后加载，只做覆盖与扩展。
-   ============================================================ */
-
-/* ---------- 页面框架 ---------- */
-html,
+/* Analog Tools theme over the native Schematic Editor Web layout. */
+html:has(.schematic-page),
 body.schematic-page {
   min-width: 0;
-}
-
-body.schematic-page {
   background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
 }
 
-.schematic-main {
-  flex: 1;
-  min-height: 0;
+.schematic-page #app {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
-  padding: 8px clamp(20px, 2.5vw, 48px) 8px;
-}
-
-.editor-frame {
-  flex: 1;
   min-height: 0;
-  overflow: hidden;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  height: auto;
 }
 
-#app {
-  height: 100%;
-}
-
-/* ---------- 编辑器外壳 ---------- */
-.schematic-page .schematic-shell {
-  --schematic-left-panel-width: 276px;
-  --schematic-right-panel-width: 310px;
-  height: 100%;
-  padding: 8px;
-  background: transparent;
-}
-
-.schematic-page .schematic-editor-root {
-  --schematic-paper: #fdfcf9;
+.schematic-page #app > .schematic-shell {
+  flex: 1 1 0;
+  height: auto;
   --schematic-ink: var(--text);
   --schematic-muted: var(--text-2);
   --schematic-border: var(--border);
   --schematic-soft-rule: var(--border);
   --schematic-focus: var(--accent);
+  --schematic-ui-panel: var(--bg-elev);
+  --schematic-ui-input: var(--bg);
+  --schematic-ui-line: var(--border);
+  --schematic-ui-hover: var(--accent-soft);
+  --schematic-ui-active: var(--accent-soft);
+  --ink: var(--text);
+  --muted: var(--text-2);
+  --soft-rule: var(--border);
+  --viva-blue: var(--accent);
+  background: var(--bg);
+}
+
+:root[data-effective-theme="light"] .schematic-page .schematic-shell {
+  --schematic-paper: #fdfcf9;
+}
+
+:root[data-effective-theme="dark"] .schematic-page .schematic-shell {
+  --schematic-ui-selected: color-mix(in oklch, var(--accent) 22%, var(--bg-elev));
+}
+
+.schematic-page .schematic-shell > :is(.schematic-palette, .schematic-workspace, .right-dock) {
+  border-color: var(--border);
+  background: var(--bg-elev);
+}
+
+.schematic-page .schematic-workspace :is(.schematic-toolbar, .schematic-document-tabs) {
+  background: var(--bg-elev);
+  border-color: var(--border);
+}
+
+.schematic-page .schematic-shell :is(.property-editor, .schematic-statusbar, .schematic-instance-browser-dialog) {
+  background: var(--bg-elev);
+  border-color: var(--border);
+}
+
+/* The site's global margin reset also applies to native dialogs. */
+.schematic-page .schematic-shell dialog:modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  block-size: fit-content;
+  max-block-size: calc(100dvh - 32px);
+  overflow: auto;
+}
+
+.schematic-page .schematic-shell .schematic-instance-browser {
+  position: fixed;
+}
+
+.schematic-page .schematic-shell :is(
+  .property-editor input:not([type="color"], [type="checkbox"]),
+  .property-editor select, .property-editor textarea, .browser-search,
+  .schematic-dialog :is(select, textarea, input:not([type="color"], [type="checkbox"]))
+) {
+  background: var(--bg);
+  border-color: var(--border);
   color: var(--text);
-  font-family: inherit;
 }
 
-.schematic-page .schematic-palette,
-.schematic-page .schematic-workspace,
-.schematic-page .analysis-panel {
+.schematic-page .schematic-shell .schematic-toolbar :is(button, .schematic-toolbar-help) {
+  border-color: var(--border);
+  border-radius: 7px;
   background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 1px oklch(0.3 0.02 60 / 0.03);
+  color: var(--text);
 }
 
-.schematic-page .schematic-palette {
-  grid-template-rows: auto minmax(120px, 1fr) auto;
-  overflow: hidden;
+.schematic-page .schematic-shell .schematic-toolbar :is(button, .schematic-toolbar-help):is(:hover, .is-active) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
-.schematic-page .schematic-workspace {
-  background: var(--bg-elev);
-}
-
-/* ---------- 左侧面板 ---------- */
-.schematic-page .symbol-template-panel {
-  padding: 13px 14px;
-  background: transparent;
+.schematic-site-heading {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  container-type: inline-size;
+  gap: 6px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--border);
-}
-
-.schematic-page .symbol-template-control {
-  gap: 9px;
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--text-2);
-}
-
-.schematic-page .symbol-template-control select {
-  height: 32px;
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.84rem;
-  color: var(--text);
-  background-color: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.schematic-page .palette-title {
-  padding: 14px;
-  border-bottom: 1px solid var(--border);
-}
-
-.schematic-page .palette-title-copy strong {
-  font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.schematic-page .palette-title-copy span {
-  color: var(--text-2);
-  font-size: 0.76rem;
-}
-
-.schematic-page .palette-grid {
-  gap: 7px;
-  padding: 12px;
-}
-
-.schematic-page .instance-selector {
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 9px;
-  min-height: 50px;
-  padding: 6px 7px;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
 }
 
-.schematic-page .instance-selector:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+.schematic-site-heading .back {
+  min-height: 28px;
+  flex: none;
+  font-size: clamp(0.66rem, 5.8cqi, 0.77rem);
+  white-space: nowrap;
 }
 
-.schematic-page .instance-query-wrap {
-  height: 32px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 7px;
+.schematic-site-heading .header-divider { display: block; height: 16px; }
+.schematic-site-heading .app-title {
+  overflow: visible;
+  font-size: clamp(0.69rem, 5.8cqi, 0.98rem);
+  white-space: nowrap;
 }
 
-.schematic-page .instance-selector:focus-within .instance-query-wrap {
-  border-color: var(--accent);
-  box-shadow: none;
-}
-
-.schematic-page .instance-selector input,
-.schematic-page .instance-query-overlay {
-  font: inherit;
-  font-size: 0.86rem;
-}
-
-.schematic-page .instance-query-overlay [data-instance-query-ghost] {
-  color: var(--text-2);
-  opacity: 0.6;
-}
-
-.schematic-page .instance-dropdown-button {
-  border-left: 1px solid var(--border);
-  background: var(--bg-elev);
-  color: var(--text-2);
-}
-
-.schematic-page .instance-dropdown-button:hover,
-.schematic-page .instance-dropdown-button[aria-expanded="true"] {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.schematic-page .instance-dropdown {
-  max-height: min(300px, calc(100vh - 280px));
-  border: 1px solid var(--border);
-  border-radius: 0 0 10px 10px;
-  background: var(--bg-elev);
-  box-shadow: var(--shadow);
-}
-
-.schematic-page .instance-dropdown-option {
-  min-height: 30px;
-  padding: 6px 9px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.84rem;
-}
-
-.schematic-page .instance-dropdown-option.is-active,
-.schematic-page .instance-dropdown-option:hover {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.schematic-page .instance-option {
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 9px;
-  min-height: 48px;
-  padding: 6px 7px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-}
-
-.schematic-page .instance-option.is-active,
-.schematic-page .instance-option:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.schematic-page .instance-option.is-selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--text);
-}
-
-.schematic-page .instance-option span {
-  font-size: 0.84rem;
-}
-
-.schematic-page .instance-option-empty,
-.schematic-page .property-empty {
-  padding: 9px;
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  color: var(--text-2);
-  font-size: 0.82rem;
-}
-
-/* ---------- 属性面板 ---------- */
-.schematic-page .property-editor {
-  gap: 10px;
-  min-height: 0;
-  max-height: min(52vh, 380px);
-  padding: 14px;
-  overflow-y: auto;
-  background: transparent;
-  border-top: 1px solid var(--border);
-}
-
-.schematic-page .property-editor h2 {
-  font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
-  font-size: 1.02rem;
-  font-weight: 600;
-}
-
-.schematic-page .property-form,
-.schematic-page .property-vsource-fields,
-.schematic-page .property-triangle-fields,
-.schematic-page .property-rectangle-fields,
-.schematic-page .property-pin-list {
-  gap: 9px;
-}
-
-.schematic-page .property-static-row,
-.schematic-page .property-row {
-  grid-template-columns: 5.2em minmax(0, 1fr);
-  gap: 7px;
-  min-height: 32px;
-  font-size: 0.84rem;
-}
-
-.schematic-page .property-row > span,
-.schematic-page .property-static-row > span,
-.schematic-page .property-pin-row > span {
-  color: var(--text-2);
-}
-
-.schematic-page .property-pin-row select,
-.schematic-page .property-row input:not([type="checkbox"]),
-.schematic-page .property-row select {
-  min-height: 32px;
-  padding: 5px 8px;
-  font: inherit;
-  font-size: 0.84rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
-}
-
-.schematic-page .property-pin-row select:focus,
-.schematic-page .property-row input:not([type="checkbox"]):focus,
-.schematic-page .property-row select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.schematic-page .property-row .property-value-unit {
-  color: var(--text-2);
-  font-size: 0.82rem;
-}
-
-.schematic-page .property-segmented button,
-.schematic-page .property-inline-action button,
-.schematic-page .property-inline-toggle-action button,
-.schematic-page .property-command-row button,
-.schematic-page .property-primary-command,
-.schematic-page .property-coupling-list button {
-  min-height: 30px;
-  padding: 4px 8px;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.schematic-page .property-segmented button:first-child {
-  border-radius: 7px 0 0 7px;
-}
-
-.schematic-page .property-segmented button:last-child {
-  border-radius: 0 7px 7px 0;
-}
-
-.schematic-page .property-segmented button:hover,
-.schematic-page .property-inline-action button:hover,
-.schematic-page .property-command-row button:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.schematic-page .property-segmented button.is-selected,
-.schematic-page .property-segmented button[aria-pressed="true"],
-.schematic-page .property-inline-action button.is-active,
-.schematic-page .property-inline-action button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 600;
-  box-shadow: none;
-  transform: none;
-}
-
-.schematic-page .property-primary-command {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-
-/* 颜色样本：圆形色片，替代原先突兀的黑色方块 */
-.schematic-page .property-color-control {
-  grid-template-columns: repeat(auto-fill, minmax(19px, 1fr));
-  gap: 5px;
-}
-
-.schematic-page .property-color-swatches button {
-  width: 100%;
-  aspect-ratio: 1;
-  border: 1px solid oklch(0.3 0.02 60 / 0.22);
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 2px var(--bg-elev);
-  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
-}
-
-.schematic-page .property-color-swatches button:hover {
-  transform: scale(1.12);
-}
-
-.schematic-page .property-color-swatches button.is-selected,
-.schematic-page .property-color-swatches button[aria-pressed="true"] {
-  border-color: var(--accent-strong);
-  box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 3.5px var(--accent);
-}
-
-.schematic-page .property-color-swatches .property-default-color-swatch {
-  overflow: hidden;
-}
-
-.schematic-page .property-color-swatches .property-default-color-swatch::after {
-  inset: 5px;
-  border-color: var(--bg-elev);
-}
-
-.schematic-page .property-color-swatches .property-no-fill-swatch {
-  overflow: hidden;
-  background:
-    linear-gradient(45deg, var(--border) 25%, transparent 25%, transparent 75%, var(--border) 75%),
-    linear-gradient(45deg, var(--border) 25%, var(--bg-elev) 25%, var(--bg-elev) 75%, var(--border) 75%);
-  background-position: 0 0, 4px 4px;
-  background-size: 8px 8px;
-}
-
-.schematic-page .property-color-control input[type="color"] {
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--bg);
-  overflow: hidden;
-}
-
-.schematic-page .property-error {
-  color: oklch(0.55 0.18 30);
-}
-
-.schematic-page .property-toggle,
-.schematic-page .property-pin-row .property-toggle {
-  accent-color: var(--accent);
-}
-
-/* ---------- 文档标签栏 ---------- */
-.schematic-page .schematic-document-tabs {
-  height: 40px;
-  padding: 5px 8px 0;
-  background: color-mix(in oklch, var(--bg) 72%, var(--bg-elev));
-  border-bottom: 1px solid var(--border);
-}
-
-.schematic-page .schematic-document-tab {
-  height: 34px;
-  grid-template-columns: minmax(76px, 168px) 28px;
-  border-radius: 9px 9px 0 0;
-}
-
-.schematic-page .schematic-document-tab.is-active {
-  background: var(--bg-elev);
-  border-color: var(--border);
-  border-bottom-color: var(--bg-elev);
-}
-
-.schematic-page .schematic-document-tab-label {
-  padding-left: 12px;
-  color: var(--text-2);
-  font: 600 12px/32px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
-}
-
-.schematic-page .schematic-document-tab.is-active .schematic-document-tab-label {
-  color: var(--text);
-}
-
-.schematic-page .schematic-document-tab-close,
-.schematic-page .schematic-document-tab-new,
-.schematic-page .schematic-document-tab-action {
-  color: var(--text-2);
-  border-radius: 7px;
-}
-
-.schematic-page .schematic-document-tab-close:hover,
-.schematic-page .schematic-document-tab-new:hover,
-.schematic-page .schematic-document-tab-action:hover {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.schematic-page .schematic-document-tab-new {
-  width: 30px;
-  height: 30px;
-  margin-left: 5px;
-  border: 1px solid transparent;
-  font-size: 17px;
-  line-height: 1;
-}
-
-.schematic-page .schematic-document-tab-action {
-  width: 30px;
-  height: 30px;
-  margin-left: 2px;
-}
-
-.schematic-page .schematic-document-tab-action svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.schematic-page .schematic-document-tabs > .schematic-document-tab-new {
-  margin-left: auto;
-}
-
-.schematic-page .schematic-document-tab-action[data-schematic-document-export] {
-  margin-left: 0;
-}
-
-/* ---------- 工具栏 ---------- */
-.schematic-page .schematic-toolbar {
-  gap: 3px;
-  padding: 7px 9px;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-}
-
-.schematic-page .schematic-toolbar button {
-  width: 34px;
-  height: 34px;
-  padding: 4px;
-  color: var(--text-2);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  transition: color 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out;
-}
-
-.schematic-page .schematic-toolbar button svg {
-  width: 23px;
-  height: 23px;
-}
-
-.schematic-page .schematic-toolbar button:hover {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.schematic-page .schematic-toolbar button.is-active,
-.schematic-page .schematic-toolbar button[aria-pressed="true"] {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  box-shadow: none;
-  transform: none;
-}
-
-.schematic-page .schematic-toolbar button:active {
-  transform: scale(0.94);
-}
-
-.schematic-page .schematic-toolbar button:disabled {
-  opacity: 0.32;
-  cursor: default;
-}
-
-.schematic-page .schematic-toolbar button[data-command="delete"] svg,
-.schematic-page .schematic-toolbar button[data-command="temp-delete"] svg {
-  filter: saturate(0.72);
-}
-
-/* ---------- 画布 ---------- */
-.schematic-page .schematic-paper {
-  background: var(--schematic-paper);
-  cursor: default;
-}
-
-.schematic-page .joint-paper {
-  background: transparent !important;
-}
-
-.schematic-page .schematic-status {
-  padding: 7px 12px;
-  border-top: 1px solid var(--border);
-  color: var(--text-2);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  background: color-mix(in oklch, var(--bg) 55%, var(--bg-elev));
-}
-
-/* ---------- 右侧符号分析 ---------- */
-.schematic-page .analysis-panel {
-  gap: 11px;
-  padding: 15px;
-}
-
-.schematic-page .analysis-panel h2 {
-  font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
-  font-size: 1.08rem;
-  font-weight: 600;
-}
-
-.schematic-page .analysis-note {
-  margin-top: -4px;
-  color: var(--text-2);
-  font-size: 0.78rem;
-  line-height: 1.5;
-}
-
-.schematic-page .selection-summary {
-  padding: 8px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-2);
-  font-size: 0.8rem;
-}
-
-.schematic-page .net-pick-row {
-  grid-template-columns: 64px minmax(0, 1fr) 52px;
-  gap: 7px;
-}
-
-.schematic-page .net-pick-row label {
-  font-size: 0.82rem;
-  color: var(--text-2);
-}
-
-.schematic-page .net-pick-row select,
-.schematic-page .analysis-panel select {
-  min-height: 32px;
-  padding: 4px 7px;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-}
-
-.schematic-page .net-pick-row button,
-.schematic-page .analysis-actions button {
-  min-height: 32px;
-  padding: 5px 9px;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.schematic-page .net-pick-row button:hover,
-.schematic-page .analysis-actions button:hover {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
-.schematic-page .analysis-actions button[data-analysis="compute"] {
-  min-height: 36px;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
-.schematic-page .analysis-diagnostics {
-  min-height: 44px;
-  padding: 8px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-2);
-  font-size: 0.78rem;
-}
-
-.schematic-page .analysis-results h3 {
-  font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-.schematic-page .analysis-results output {
-  min-height: 50px;
-  padding: 8px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.82rem;
-}
-
-.schematic-page .analysis-progress-bar {
-  height: 3px;
-  border: 0;
-  border-radius: 99px;
-  background: var(--accent-soft);
-}
-
-.schematic-page .analysis-progress-bar::before {
-  background: var(--accent);
-}
-
-.schematic-page .analysis-progress {
-  color: var(--text-2);
-  font-size: 0.78rem;
-}
-
-/* ---------- 面板拖拽把手 ---------- */
-.schematic-page .schematic-panel-resizer::after {
-  width: 1px;
-  background: var(--border);
-}
-
-.schematic-page .schematic-panel-resizer:hover::after,
-.schematic-page .schematic-panel-resizer:focus-visible::after {
-  width: 2px;
-  background: var(--accent);
-}
-
-.schematic-page .schematic-shell:not(.is-left-panel-visible) > [data-schematic-panel-resizer="left"]::before,
-.schematic-page .schematic-shell:not(.is-right-panel-visible) > [data-schematic-panel-resizer="right"]::before {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 58px;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  background: var(--bg-elev);
-  color: var(--accent-strong);
-  font-size: 15px;
-  line-height: 1;
-}
-
-.schematic-page .schematic-shell:not(.is-left-panel-visible) > [data-schematic-panel-resizer="left"]::before {
-  content: "‹";
-}
-
-.schematic-page .schematic-shell:not(.is-right-panel-visible) > [data-schematic-panel-resizer="right"]::before {
-  content: "›";
-}
-
-/* ---------- 右键菜单 ---------- */
-.schematic-context-menu {
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-elev);
-  box-shadow: var(--shadow-hover);
-}
-
-.schematic-context-menu button {
-  padding: 7px 10px;
-  border-radius: 6px;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.84rem;
-}
-
-.schematic-context-menu button:hover,
-.schematic-context-menu button:focus-visible {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-/* ---------- 深色模式 ---------- */
-:root[data-effective-theme="dark"] .schematic-page .schematic-editor-root {
-  --schematic-paper: #1c1a16;
-  --schematic-ink: oklch(0.92 0.01 90);
-  --schematic-muted: oklch(0.72 0.015 80);
-  --schematic-border: oklch(0.36 0.015 70);
-  --schematic-soft-rule: oklch(0.33 0.014 70);
-  --schematic-focus: oklch(0.74 0.12 62);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-palette,
-:root[data-effective-theme="dark"] .schematic-page .schematic-workspace,
-:root[data-effective-theme="dark"] .schematic-page .analysis-panel {
-  background: oklch(0.245 0.014 70);
-  border-color: var(--border);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-document-tabs {
-  background: oklch(0.235 0.013 70);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-document-tab.is-active {
-  background: oklch(0.245 0.014 70);
-  border-color: var(--border);
-  border-bottom-color: oklch(0.245 0.014 70);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-document-tab-label {
-  color: var(--text-2);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-document-tab.is-active .schematic-document-tab-label {
-  color: var(--text);
-}
-
-/* 画布与注释层：分层反相，保留彩色网络的色相 */
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-grid-layer,
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-back-layer,
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-cells-layer,
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-labels-layer,
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-front-layer,
-:root[data-effective-theme="dark"] .schematic-page .joint-paper .joint-tools-layer,
-:root[data-effective-theme="dark"] .schematic-page .schematic-note-layer,
-:root[data-effective-theme="dark"] .schematic-page .schematic-note-document-layer {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-status {
-  background: oklch(0.235 0.013 70);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .analysis-note,
-:root[data-effective-theme="dark"] .schematic-page .analysis-diagnostics,
-:root[data-effective-theme="dark"] .schematic-page .selection-summary {
-  color: var(--text-2);
-  background: oklch(0.225 0.013 70);
-  border-color: var(--border);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .analysis-results output,
-:root[data-effective-theme="dark"] .schematic-page .net-pick-row select,
-:root[data-effective-theme="dark"] .schematic-page .net-pick-row button,
-:root[data-effective-theme="dark"] .schematic-page .analysis-actions button {
-  background: oklch(0.225 0.013 70);
-  border-color: var(--border);
-  color: var(--text);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .schematic-paper {
-  background: #1c1a16;
-}
-
-:root[data-effective-theme="dark"] .schematic-page .property-color-swatches button {
-  border-color: oklch(0.45 0.015 70);
-  box-shadow: inset 0 0 0 2px oklch(0.245 0.014 70);
-}
-
-:root[data-effective-theme="dark"] .schematic-page .property-color-swatches .property-default-color-swatch::after {
-  border-color: oklch(0.245 0.014 70);
-}
-
-/* ---------- 窄屏 ---------- */
-@media (max-width: 1100px) {
-  .schematic-page .schematic-shell {
-    --schematic-right-panel-width: 290px;
-  }
-}
-
-@media (max-width: 820px) {
-  .schematic-main {
-    padding: 6px 12px;
-  }
-
-  .schematic-page .schematic-shell {
-    --schematic-left-panel-width: min(86vw, 300px);
-    --schematic-right-panel-width: min(86vw, 300px);
-    padding: 6px;
-  }
-
-  .schematic-page .schematic-toolbar {
-    flex-wrap: wrap;
-    padding: 6px 7px;
-  }
-
-  .schematic-page .schematic-toolbar button {
-    flex: 0 0 34px;
-  }
-
-  .schematic-page .schematic-toolbar button svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  .schematic-page .schematic-document-tabs {
-    height: 38px;
-    padding: 4px 5px 0;
-  }
-
-  .schematic-page .schematic-document-tab {
-    height: 33px;
-    grid-template-columns: minmax(70px, 130px) 26px;
-  }
-
-  .schematic-page .schematic-status {
-    padding: 6px 9px;
-    font-size: 0.72rem;
-  }
+.schematic-page.app-page .app-footer {
+  padding-block: 6px calc(6px + env(safe-area-inset-bottom));
 }
 
 @media (max-width: 560px) {
-  .schematic-page .schematic-shell[data-schematic-shell].is-layout-ready.is-layout-narrow {
-    padding: 5px;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > .schematic-palette {
-    left: 5px;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > .analysis-panel {
-    right: 5px;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > [data-schematic-panel-resizer="left"] {
-    left: 0;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > [data-schematic-panel-resizer="right"] {
-    right: 0;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > .schematic-panel-resizer {
-    width: 16px;
-    cursor: pointer;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > .schematic-panel-resizer::after {
-    background: transparent;
-  }
-
-  .schematic-page .schematic-shell.is-layout-narrow > .schematic-panel-resizer::before {
-    top: 50%;
-    width: 14px;
-    height: 56px;
-    border: 1px solid var(--accent);
-    border-radius: 99px;
-    background: var(--accent);
-    color: #fff;
-    font-size: 17px;
-    font-weight: 600;
-  }
-
-  .schematic-page .schematic-palette,
-  .schematic-page .schematic-workspace,
-  .schematic-page .analysis-panel {
-    border-radius: 10px;
-  }
-
-  .schematic-page .property-editor {
-    padding: 12px;
-  }
-
-  .schematic-page .property-static-row,
-  .schematic-page .property-row {
-    grid-template-columns: 4.8em minmax(0, 1fr);
-    font-size: 0.8rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .schematic-page *,
-  .schematic-page *::before,
-  .schematic-page *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-}
-
-/* ============================================================
-   使用手册
-   ============================================================ */
-.manual-page .manual-wrap {
-  max-width: 1200px;
-  padding: 18px 24px 64px;
-  overflow-wrap: anywhere;
-}
-
-.manual-hero {
-  padding: 22px 0 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-.manual-kicker {
-  font-size: 0.76rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.manual-hero h1 {
-  margin-top: 6px;
-  font-size: clamp(2rem, 4.2vw, 2.9rem);
-  font-weight: 600;
-}
-
-.manual-lead {
-  max-width: none;
-  margin-top: 10px;
-  font-size: 1.02rem;
-  color: var(--text-2);
-}
-
-.manual-toc {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 4px;
-  padding: 16px 0 4px;
-}
-
-.manual-toc a {
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.82rem;
-  color: var(--text-2);
-  background: var(--bg-elev);
-}
-
-.manual-toc a:hover {
-  color: var(--accent-strong);
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.manual-section {
-  padding-top: 34px;
-  scroll-margin-top: 24px;
-}
-
-.manual-section h2 {
-  font-size: 1.32rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.manual-section h2::after {
-  content: "";
-  display: block;
-  width: 34px;
-  height: 2px;
-  margin-top: 8px;
-  background: var(--accent);
-  border-radius: 99px;
-}
-
-.manual-section p,
-.manual-section li {
-  max-width: none;
-  color: var(--text-2);
-  font-size: 0.95rem;
-  line-height: 1.8;
-  overflow-wrap: anywhere;
-}
-
-.manual-section p + p {
-  margin-top: 10px;
-}
-
-.manual-section ul,
-.manual-section ol {
-  margin: 10px 0 0;
-  padding-left: 1.25em;
-}
-
-.manual-section li {
-  margin-top: 7px;
-}
-
-.manual-section li::marker {
-  color: var(--accent);
-}
-
-.manual-section strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.manual-section code {
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: var(--accent-soft);
-  color: var(--text);
-  font-size: 0.88em;
-  overflow-wrap: anywhere;
-}
-
-.manual-section kbd,
-.key-table kbd {
-  display: inline-block;
-  min-width: 1.6em;
-  padding: 1px 5px;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  background: var(--bg-elev);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.78em;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.manual-callout {
-  margin-top: 16px;
-  padding: 13px 16px;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  background: var(--accent-soft);
-  color: var(--text-2);
-  font-size: 0.9rem;
-  line-height: 1.7;
-}
-
-.key-table {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
-  margin-top: 14px;
-}
-
-.key-table > div {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 7px 2px;
-  border-bottom: 1px dashed var(--border);
-}
-
-.key-table span {
-  margin-left: auto;
-  color: var(--text-2);
-  font-size: 0.86rem;
-  text-align: right;
-}
-
-@media (max-width: 640px) {
-  .manual-page .manual-wrap {
-    padding: 12px 16px 48px;
-  }
-
-  .manual-hero {
-    padding-top: 12px;
-  }
-
-  .manual-section {
-    padding-top: 28px;
-  }
-
-  .key-table {
-    grid-template-columns: 1fr;
-  }
-
-  .manual-toc {
-    gap: 5px;
-  }
+  .schematic-page #app > .schematic-shell { padding: 5px; }
+  .schematic-page.app-page .app-footer .wrap { gap: 2px 10px; }
 }

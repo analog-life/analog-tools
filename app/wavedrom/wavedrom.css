@@ -127,60 +127,6 @@
   :root:not([data-theme="light"]) .wd-error { color: oklch(0.75 0.14 40); }
 }
 
-/* ---------- 使用手册页 ---------- */
-.manual {
-  max-width: 1200px;
-  margin-inline: auto;
-  overflow-wrap: anywhere;
-}
-.manual h2 {
-  margin-top: 36px;
-  font-size: 1.3rem;
-}
-.manual h2:first-child { margin-top: 28px; }
-.manual p, .manual li { max-width: none; }
-.manual p { margin-top: 12px; color: var(--text); }
-.manual ul { margin: 12px 0 0 1.4em; }
-.manual li { margin-top: 6px; }
-.manual code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 0.88em;
-  background: var(--accent-soft);
-  padding: 1px 6px;
-  border-radius: 5px;
-  overflow-wrap: anywhere;
-}
-.manual pre {
-  margin-top: 12px;
-  padding: 14px 16px;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font: 13px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
-  max-width: 100%;
-}
-.manual table {
-  margin-top: 14px;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-  max-width: 100%;
-}
-.manual th, .manual td {
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-.manual th {
-  background: var(--bg-elev);
-  font-weight: 600;
-}
-.manual td code { background: transparent; padding: 0; }
-
 /* 语言块切换 */
 [data-lang-block] { display: none; }
 :root[data-lang="zh"] [data-lang-block="zh"] { display: block; }

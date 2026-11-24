@@ -4,32 +4,36 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>WaveDrom 使用手册 · Analog Tools</title>
+<title data-i18n="manualTitle">WaveDrom 使用手册 · Analog Tools</title>
 <meta name="description" content="WaveDrom 时序图绘制工具的介绍与使用方法。">
 <script>
 (function () {
+  var lang = (navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
   try {
+    var saved = localStorage.getItem("at-lang");
+    if (saved === "zh" || saved === "en") lang = saved;
     var t = localStorage.getItem("at-theme");
     if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
   } catch (e) { /* 忽略 */ }
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
 })();
 </script>
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/style.css">
-<link rel="stylesheet" href="./wavedrom.css">
+<link rel="stylesheet" href="../assets/css/manual.css">
 </head>
-<body>
+<body class="manual-page">
 
-<header class="site-header">
+<header class="site-header app-header">
   <div class="wrap header-inner">
     <a class="back" href="./index.html" data-i18n="backTool">← 返回工具</a>
     <div class="tool-controls">
-      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language">
+      <button id="lang-toggle" class="btn lang-toggle" type="button" aria-label="Language: switch to English">
         <svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
           <path d="M3 12h18M12 3c2.4 2.5 3.6 5.6 3.6 9S14.4 18.5 12 21M12 3C9.6 5.5 8.4 8.6 8.4 12s1.2 6.5 3.6 9" fill="none" stroke="currentColor" stroke-width="1.6"/>
         </svg>
-        <span class="lang-word">Language</span>
+        <span class="lang-word" lang="en">Language</span>
         <span class="lang-value" id="lang-value">EN</span>
       </button>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深色模式">
@@ -45,189 +49,261 @@
   </div>
 </header>
 
-<main class="wrap tool-main manual">
+<main class="manual-wrap wrap">
+  <article lang="zh-CN" data-manual-language="zh">
+    <header class="manual-hero">
+      <h1>WaveDrom 使用手册</h1>
+      <p>先用内置示例绘制一张时序图，再查阅波形字符、时序标注和寄存器图的写法。</p>
+    </header>
+    <nav class="manual-toc" aria-label="目录">
+      <a href="#intro">这是什么</a>
+      <a href="#quick-start">快速上手</a>
+      <a href="#structure">基本结构</a>
+      <a href="#wave-characters">波形字符</a>
+      <a href="#configuration">常用配置</a>
+      <a href="#timing-arcs">节点与边沿标注</a>
+      <a href="#signal-groups">信号分组</a>
+      <a href="#registers">寄存器图</a>
+      <a href="#further-reading">更多资料</a>
+    </nav>
 
-  <!-- ==================== 中文 ==================== -->
-  <div data-lang-block="zh">
-    <h1>WaveDrom 使用手册</h1>
+    <section class="manual-section" id="intro">
+      <h2>这是什么</h2>
+      <p>WaveDrom 是一个开源的数字电路时序图绘制引擎。本工具把它做成了纯本地的在线编辑器：在左侧编写 WaveJSON 描述，右侧实时渲染出时序图，可以导出为 SVG 或 PNG 图片，用于博客文章、报告或论文。所有处理都在你的浏览器中完成，不会上传任何数据。</p>
+      <p>原项目：<a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">github.com/wavedrom/wavedrom</a>（MIT 许可），原作者 Aliaksei Chapyzhenka。</p>
+    </section>
 
-    <h2>这是什么</h2>
-    <p>WaveDrom 是一个开源的数字电路时序图绘制引擎。本工具把它做成了纯本地的在线编辑器：在左侧编写 WaveJSON 描述，右侧实时渲染出时序图，可以导出为 SVG 或 PNG 图片，用于博客文章、报告或论文。所有处理都在你的浏览器中完成，不会上传任何数据。</p>
-    <p>原项目：<a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">github.com/wavedrom/wavedrom</a>（MIT 许可），原作者 Aliaksei Chapyzhenka。</p>
+    <section class="manual-section" id="quick-start">
+      <h2>快速上手</h2>
+      <ol>
+        <li>打开工具后，左侧是代码区，右侧是预览区，修改代码约 0.3 秒后自动重新渲染。</li>
+        <li>输入的代码会自动保存在本浏览器（<code>localStorage</code> 键名 <code>at-wavedrom-code</code>），再次打开会自动恢复；从未编辑过时显示第一个示例。</li>
+        <li>工具栏的「示例」下拉框内置了四个常用例子（时钟数据、SPI、边沿标注、寄存器），选一个即可套用。</li>
+        <li>语法写错时，编辑器下方会显示错误信息，修改后自动恢复。</li>
+        <li>「导出 SVG」得到矢量图，适合插入文档；「导出 PNG」得到 2 倍分辨率的位图。导出图片的背景色与当前页面主题一致。</li>
+      </ol>
+    </section>
 
-    <h2>快速上手</h2>
-    <ul>
-      <li>打开工具后，左侧是代码区，右侧是预览区，修改代码约 0.3 秒后自动重新渲染。</li>
-      <li>输入的代码会自动保存在本浏览器（<code>localStorage</code> 键名 <code>at-wavedrom-code</code>），再次打开会自动恢复；从未编辑过时显示第一个示例。</li>
-      <li>工具栏的「示例」下拉框内置了四个常用例子（时钟数据、SPI、边沿标注、寄存器），选一个即可套用。</li>
-      <li>语法写错时，编辑器下方会显示错误信息，修改后自动恢复。</li>
-      <li>「导出 SVG」得到矢量图，适合插入文档；「导出 PNG」得到 2 倍分辨率的位图。导出图片的背景色与当前页面主题一致。</li>
-    </ul>
-
-    <h2>基本结构</h2>
-    <p>最简单的时序图由一个 <code>signal</code> 数组组成，每个元素是一条信号：</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="structure">
+      <h2>基本结构</h2>
+      <p>最简单的时序图由一个 <code>signal</code> 数组组成，每个元素是一条信号：</p>
+      <pre><code>{ "signal": [
   { "name": "clk",  "wave": "p......" },
   { "name": "data", "wave": "x.345x.", "data": ["head", "body", "tail"] }
-]}</pre>
-    <p><code>name</code> 是信号名；<code>wave</code> 是波形字符串，每个字符代表一个时间片；<code>data</code> 为数据段中的标注文字。</p>
+]}</code></pre>
+      <p><code>name</code> 是信号名；<code>wave</code> 是波形字符串，每个字符代表一个时间片；<code>data</code> 为数据段中的标注文字。</p>
+    </section>
 
-    <h2>波形字符</h2>
-    <table>
-      <tr><th>字符</th><th>含义</th></tr>
-      <tr><td><code>0</code> / <code>1</code></td><td>低电平 / 高电平</td></tr>
-      <tr><td><code>p</code> / <code>n</code></td><td>正极性 / 负极性时钟周期</td></tr>
-      <tr><td><code>P</code> / <code>N</code></td><td>带箭头的正 / 负极性时钟</td></tr>
-      <tr><td><code>.</code></td><td>延续上一个时间片的状态</td></tr>
-      <tr><td><code>x</code></td><td>不确定值（斜线交叉）</td></tr>
-      <tr><td><code>z</code></td><td>高阻态</td></tr>
-      <tr><td><code>=</code></td><td>白色数据段（配合 <code>data</code> 使用）</td></tr>
-      <tr><td><code>2</code> – <code>9</code></td><td>彩色数据段，不同数字不同颜色</td></tr>
-      <tr><td><code>u</code> / <code>d</code></td><td>弱上拉 / 弱下拉</td></tr>
-      <tr><td><code>|</code></td><td>时间间隙（打断波形）</td></tr>
-    </table>
+    <section class="manual-section" id="wave-characters">
+      <h2>波形字符</h2>
+      <table>
+        <thead>
+          <tr><th scope="col">字符</th><th scope="col">含义</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>0</code> / <code>1</code></td><td>低电平 / 高电平</td></tr>
+          <tr><td><code>p</code> / <code>n</code></td><td>正极性 / 负极性时钟周期</td></tr>
+          <tr><td><code>P</code> / <code>N</code></td><td>带箭头的正 / 负极性时钟</td></tr>
+          <tr><td><code>.</code></td><td>延续上一个时间片的状态</td></tr>
+          <tr><td><code>x</code></td><td>不确定值（斜线交叉）</td></tr>
+          <tr><td><code>z</code></td><td>高阻态</td></tr>
+          <tr><td><code>=</code></td><td>白色数据段（配合 <code>data</code> 使用）</td></tr>
+          <tr><td><code>2</code> – <code>9</code></td><td>彩色数据段，不同数字不同颜色</td></tr>
+          <tr><td><code>u</code> / <code>d</code></td><td>弱上拉 / 弱下拉</td></tr>
+          <tr><td><code>|</code></td><td>时间间隙（打断波形）</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    <h2>常用配置</h2>
-    <p>在顶层添加 <code>config</code> 对象可以调整全局参数：</p>
-    <pre>{ "signal": [ ... ],
+    <section class="manual-section" id="configuration">
+      <h2>常用配置</h2>
+      <p>在顶层添加 <code>config</code> 对象可以调整全局参数：</p>
+      <pre><code>{ "signal": [ ... ],
   "config": { "hscale": 2, "skin": "narrow" }
-}</pre>
-    <ul>
-      <li><code>hscale</code>：横向缩放倍数，默认 1，字符很多时调大。</li>
-      <li><code>skin</code>：图形样式，可选 <code>default</code> 或 <code>narrow</code>（窄波形）。本工具会根据深浅色模式自动选择配色，无需手动设置颜色。</li>
-      <li>信号上的 <code>phase</code>（相位偏移）与 <code>period</code>（周期倍数）可微调单个信号，如 <code>{ "name": "clk", "wave": "p...", "period": 2, "phase": 0.5 }</code>。</li>
-    </ul>
+}</code></pre>
+      <ul>
+        <li><code>hscale</code>：横向缩放倍数，默认 1，字符很多时调大。</li>
+        <li><code>skin</code>：图形样式，可选 <code>default</code> 或 <code>narrow</code>（窄波形）。本工具会根据深浅色模式自动选择配色，无需手动设置颜色。</li>
+        <li>信号上的 <code>phase</code>（相位偏移）与 <code>period</code>（周期倍数）可微调单个信号，如 <code>{ "name": "clk", "wave": "p...", "period": 2, "phase": 0.5 }</code>。</li>
+      </ul>
+    </section>
 
-    <h2>节点与边沿标注</h2>
-    <p>用 <code>node</code> 在波形上放置标记点，再用 <code>edge</code> 数组画出时序弧线和文字：</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="timing-arcs">
+      <h2>节点与边沿标注</h2>
+      <p>用 <code>node</code> 在波形上放置标记点，再用 <code>edge</code> 数组画出时序弧线和文字：</p>
+      <pre><code>{ "signal": [
   { "name": "clk", "wave": "p.......", "node": "..a.....b" },
   { "name": "d",   "wave": "x.3.4.5x", "node": "...c....d" }
 ],
   "edge": [ "a~>c setup", "d~>b hold" ]
-}</pre>
-    <p><code>node</code> 中每个字母对应一个时间片上的位置；<code>edge</code> 里 <code>a~&gt;c setup</code> 表示从节点 a 到 c 画一条弧线并标注「setup」。</p>
+}</code></pre>
+      <p><code>node</code> 中每个字母对应一个时间片上的位置；<code>edge</code> 里 <code>a~&gt;c setup</code> 表示从节点 a 到 c 画一条弧线并标注「setup」。</p>
+    </section>
 
-    <h2>信号分组</h2>
-    <p>把多条信号放进数组并加上组名，可以画出总线分组：</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="signal-groups">
+      <h2>信号分组</h2>
+      <p>把多条信号放进数组并加上组名，可以画出总线分组：</p>
+      <pre><code>{ "signal": [
   ["主机",
     { "name": "SCLK", "wave": "p...." },
     { "name": "MOSI", "wave": "x.2.2x", "data": ["D7", "D6"] }
   ],
   { "name": "CS", "wave": "1.0..1" }
-]}</pre>
+]}</code></pre>
+    </section>
 
-    <h2>寄存器图</h2>
-    <p>把 <code>signal</code> 换成 <code>reg</code> 即可绘制寄存器位域图，<code>bits</code> 是位数，<code>attr</code> 是属性标注，空的 <code>{ "bits": n }</code> 表示保留位：</p>
-    <pre>{ "reg": [
+    <section class="manual-section" id="registers">
+      <h2>寄存器图</h2>
+      <p>把 <code>signal</code> 换成 <code>reg</code> 即可绘制寄存器位域图，<code>bits</code> 是位数，<code>attr</code> 是属性标注，空的 <code>{ "bits": n }</code> 表示保留位：</p>
+      <pre><code>{ "reg": [
   { "name": "EN",   "bits": 1, "attr": "rw" },
   { "bits": 3 },
   { "name": "MODE", "bits": 4, "attr": "rw" }
 ],
   "config": { "bits": 8 }
-}</pre>
+}</code></pre>
+    </section>
 
-    <h2>更多资料</h2>
-    <p>完整语法（含 <code>head</code> / <code>foot</code> 标题脚注、属性数组等）请参考
-      <a href="https://wavedrom.com/tutorial.html" target="_blank" rel="noopener">WaveDrom 官方教程</a>。</p>
-  </div>
+    <section class="manual-section" id="further-reading">
+      <h2>更多资料</h2>
+      <p>完整语法（含 <code>head</code> / <code>foot</code> 标题脚注、属性数组等）请参考
+        <a href="https://wavedrom.com/tutorial.html" target="_blank" rel="noopener">WaveDrom 官方教程</a>。</p>
+    </section>
+  </article>
 
-  <!-- ==================== English ==================== -->
-  <div data-lang-block="en">
-    <h1>WaveDrom User Manual</h1>
+  <article lang="en" data-manual-language="en">
+    <header class="manual-hero">
+      <h1>WaveDrom User Manual</h1>
+      <p>Start with a built-in timing diagram, then look up wave characters, timing annotations and register diagrams.</p>
+    </header>
+    <nav class="manual-toc" aria-label="Contents">
+      <a href="#en-intro">What is this</a>
+      <a href="#en-quick-start">Quick start</a>
+      <a href="#en-structure">Basic structure</a>
+      <a href="#en-wave-characters">Wave characters</a>
+      <a href="#en-configuration">Common configuration</a>
+      <a href="#en-timing-arcs">Nodes and timing arcs</a>
+      <a href="#en-signal-groups">Signal groups</a>
+      <a href="#en-registers">Register diagrams</a>
+      <a href="#en-further-reading">Further reading</a>
+    </nav>
 
-    <h2>What is this</h2>
-    <p>WaveDrom is an open-source engine that renders digital timing diagrams. This tool wraps it in a fully local editor: write WaveJSON on the left, see the diagram rendered live on the right, and export it as SVG or PNG for your blog posts, reports or papers. Everything runs in your browser — no data ever leaves your machine.</p>
-    <p>Original project: <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">github.com/wavedrom/wavedrom</a> (MIT License), by Aliaksei Chapyzhenka.</p>
+    <section class="manual-section" id="en-intro">
+      <h2>What is this</h2>
+      <p>WaveDrom is an open-source engine that renders digital timing diagrams. This tool wraps it in a fully local editor: write WaveJSON on the left, see the diagram rendered live on the right, and export it as SVG or PNG for your blog posts, reports or papers. Everything runs in your browser — no data ever leaves your machine.</p>
+      <p>Original project: <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">github.com/wavedrom/wavedrom</a> (MIT License), by Aliaksei Chapyzhenka.</p>
+    </section>
 
-    <h2>Quick start</h2>
-    <ul>
-      <li>The left pane is the code editor, the right pane is the live preview. Edits re-render about 0.3 s after you stop typing.</li>
-      <li>Your code is saved automatically in this browser (<code>localStorage</code> key <code>at-wavedrom-code</code>) and restored next time; the first example is shown until you edit.</li>
-      <li>The Examples dropdown ships four presets (clock &amp; data, SPI, timing arcs, register) — pick one to start from.</li>
-      <li>Syntax errors appear below the editor and disappear once fixed.</li>
-      <li>Export SVG gives a vector image for documents; Export PNG gives a 2× bitmap. The export background matches the current theme.</li>
-    </ul>
+    <section class="manual-section" id="en-quick-start">
+      <h2>Quick start</h2>
+      <ol>
+        <li>The left pane is the code editor, the right pane is the live preview. Edits re-render about 0.3 s after you stop typing.</li>
+        <li>Your code is saved automatically in this browser (<code>localStorage</code> key <code>at-wavedrom-code</code>) and restored next time; the first example is shown until you edit.</li>
+        <li>The Examples dropdown ships four presets (clock &amp; data, SPI, timing arcs, register) — pick one to start from.</li>
+        <li>Syntax errors appear below the editor and disappear once fixed.</li>
+        <li>Export SVG gives a vector image for documents; Export PNG gives a 2× bitmap. The export background matches the current theme.</li>
+      </ol>
+    </section>
 
-    <h2>Basic structure</h2>
-    <p>The simplest diagram is a <code>signal</code> array, one entry per lane:</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="en-structure">
+      <h2>Basic structure</h2>
+      <p>The simplest diagram is a <code>signal</code> array, one entry per lane:</p>
+      <pre><code>{ "signal": [
   { "name": "clk",  "wave": "p......" },
   { "name": "data", "wave": "x.345x.", "data": ["head", "body", "tail"] }
-]}</pre>
-    <p><code>name</code> is the lane label; <code>wave</code> is the wave string where each character is one time slot; <code>data</code> labels the data bricks.</p>
+]}</code></pre>
+      <p><code>name</code> is the lane label; <code>wave</code> is the wave string where each character is one time slot; <code>data</code> labels the data bricks.</p>
+    </section>
 
-    <h2>Wave characters</h2>
-    <table>
-      <tr><th>Char</th><th>Meaning</th></tr>
-      <tr><td><code>0</code> / <code>1</code></td><td>Low / high level</td></tr>
-      <tr><td><code>p</code> / <code>n</code></td><td>Positive / negative clock cycle</td></tr>
-      <tr><td><code>P</code> / <code>N</code></td><td>Positive / negative clock with arrow</td></tr>
-      <tr><td><code>.</code></td><td>Extend the previous state</td></tr>
-      <tr><td><code>x</code></td><td>Don't care (crossed)</td></tr>
-      <tr><td><code>z</code></td><td>High impedance</td></tr>
-      <tr><td><code>=</code></td><td>Plain data brick (use with <code>data</code>)</td></tr>
-      <tr><td><code>2</code> – <code>9</code></td><td>Colored data bricks, one color per digit</td></tr>
-      <tr><td><code>u</code> / <code>d</code></td><td>Weak pull-up / pull-down</td></tr>
-      <tr><td><code>|</code></td><td>Time gap (breaks the wave)</td></tr>
-    </table>
+    <section class="manual-section" id="en-wave-characters">
+      <h2>Wave characters</h2>
+      <table>
+        <thead>
+          <tr><th scope="col">Char</th><th scope="col">Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>0</code> / <code>1</code></td><td>Low / high level</td></tr>
+          <tr><td><code>p</code> / <code>n</code></td><td>Positive / negative clock cycle</td></tr>
+          <tr><td><code>P</code> / <code>N</code></td><td>Positive / negative clock with arrow</td></tr>
+          <tr><td><code>.</code></td><td>Extend the previous state</td></tr>
+          <tr><td><code>x</code></td><td>Don't care (crossed)</td></tr>
+          <tr><td><code>z</code></td><td>High impedance</td></tr>
+          <tr><td><code>=</code></td><td>Plain data brick (use with <code>data</code>)</td></tr>
+          <tr><td><code>2</code> – <code>9</code></td><td>Colored data bricks, one color per digit</td></tr>
+          <tr><td><code>u</code> / <code>d</code></td><td>Weak pull-up / pull-down</td></tr>
+          <tr><td><code>|</code></td><td>Time gap (breaks the wave)</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    <h2>Common configuration</h2>
-    <p>Add a top-level <code>config</code> object to tune global parameters:</p>
-    <pre>{ "signal": [ ... ],
+    <section class="manual-section" id="en-configuration">
+      <h2>Common configuration</h2>
+      <p>Add a top-level <code>config</code> object to tune global parameters:</p>
+      <pre><code>{ "signal": [ ... ],
   "config": { "hscale": 2, "skin": "narrow" }
-}</pre>
-    <ul>
-      <li><code>hscale</code>: horizontal scale factor, default 1. Increase it for long wave strings.</li>
-      <li><code>skin</code>: graphic style, <code>default</code> or <code>narrow</code>. Colors follow the page theme automatically — no manual color setting needed.</li>
-      <li>Per-signal <code>phase</code> (shift) and <code>period</code> (stretch) fine-tune a single lane, e.g. <code>{ "name": "clk", "wave": "p...", "period": 2, "phase": 0.5 }</code>.</li>
-    </ul>
+}</code></pre>
+      <ul>
+        <li><code>hscale</code>: horizontal scale factor, default 1. Increase it for long wave strings.</li>
+        <li><code>skin</code>: graphic style, <code>default</code> or <code>narrow</code>. Colors follow the page theme automatically — no manual color setting needed.</li>
+        <li>Per-signal <code>phase</code> (shift) and <code>period</code> (stretch) fine-tune a single lane, e.g. <code>{ "name": "clk", "wave": "p...", "period": 2, "phase": 0.5 }</code>.</li>
+      </ul>
+    </section>
 
-    <h2>Nodes and timing arcs</h2>
-    <p>Place markers with <code>node</code>, then draw labeled arcs with the <code>edge</code> array:</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="en-timing-arcs">
+      <h2>Nodes and timing arcs</h2>
+      <p>Place markers with <code>node</code>, then draw labeled arcs with the <code>edge</code> array:</p>
+      <pre><code>{ "signal": [
   { "name": "clk", "wave": "p.......", "node": "..a.....b" },
   { "name": "d",   "wave": "x.3.4.5x", "node": "...c....d" }
 ],
   "edge": [ "a~>c setup", "d~>b hold" ]
-}</pre>
-    <p>Each letter in <code>node</code> marks a time slot; <code>a~&gt;c setup</code> draws an arc from node a to c labeled "setup".</p>
+}</code></pre>
+      <p>Each letter in <code>node</code> marks a time slot; <code>a~&gt;c setup</code> draws an arc from node a to c labeled "setup".</p>
+    </section>
 
-    <h2>Signal groups</h2>
-    <p>Nest lanes in an array with a group name to draw bus-style groups:</p>
-    <pre>{ "signal": [
+    <section class="manual-section" id="en-signal-groups">
+      <h2>Signal groups</h2>
+      <p>Nest lanes in an array with a group name to draw bus-style groups:</p>
+      <pre><code>{ "signal": [
   ["Master",
     { "name": "SCLK", "wave": "p...." },
     { "name": "MOSI", "wave": "x.2.2x", "data": ["D7", "D6"] }
   ],
   { "name": "CS", "wave": "1.0..1" }
-]}</pre>
+]}</code></pre>
+    </section>
 
-    <h2>Register diagrams</h2>
-    <p>Swap <code>signal</code> for <code>reg</code> to draw register bit-fields. <code>bits</code> sets the width, <code>attr</code> the attribute label, and an empty <code>{ "bits": n }</code> marks reserved bits:</p>
-    <pre>{ "reg": [
+    <section class="manual-section" id="en-registers">
+      <h2>Register diagrams</h2>
+      <p>Swap <code>signal</code> for <code>reg</code> to draw register bit-fields. <code>bits</code> sets the width, <code>attr</code> the attribute label, and an empty <code>{ "bits": n }</code> marks reserved bits:</p>
+      <pre><code>{ "reg": [
   { "name": "EN",   "bits": 1, "attr": "rw" },
   { "bits": 3 },
   { "name": "MODE", "bits": 4, "attr": "rw" }
 ],
   "config": { "bits": 8 }
-}</pre>
+}</code></pre>
+    </section>
 
-    <h2>Further reading</h2>
-    <p>For the full syntax (including <code>head</code> / <code>foot</code> captions, attribute arrays, etc.) see the
-      <a href="https://wavedrom.com/tutorial.html" target="_blank" rel="noopener">official WaveDrom tutorial</a>.</p>
-  </div>
-
+    <section class="manual-section" id="en-further-reading">
+      <h2>Further reading</h2>
+      <p>For the full syntax (including <code>head</code> / <code>foot</code> captions, attribute arrays, etc.) see the
+        <a href="https://wavedrom.com/tutorial.html" target="_blank" rel="noopener">official WaveDrom tutorial</a>.</p>
+    </section>
+  </article>
 </main>
 
-<footer class="site-footer">
+<footer class="site-footer app-footer" lang="zh-CN">
   <div class="wrap">
-    <p>© 2026 Analog Life · <a href="https://www.analog-life.com/">返回主站</a></p>
-    <p class="beian">
-      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
-      <span class="beian-sep">·</span>
-      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+    <p class="footer-credit">基于开源项目 <a href="https://github.com/wavedrom/wavedrom" target="_blank" rel="noopener">WaveDrom</a>（MIT 许可）· 原作者 Aliaksei Chapyzhenka · 时序图内容仅保存在本浏览器，不会上传。</p>
+    <p class="footer-meta">
+      <span>© 2026 Analog Life</span>
+      <span class="beian-sep" aria-hidden="true">·</span>
+      <span class="beian">
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鲁ICP备2022011627号-1</a>
+        <span class="beian-sep" aria-hidden="true">·</span>
+        <a href="https://www.beian.gov.cn/portal/registerSystemInfo?recordcode=61010302000906" target="_blank" rel="noopener">陕公网安备61010302000906号</a>
+      </span>
     </p>
   </div>
 </footer>
@@ -235,7 +311,8 @@
 <script src="../assets/js/theme.js" defer></script>
 <script>
 window.AT_I18N = {
-  backTool: { zh: "← 返回工具", en: "← Back to tool" }
+  backTool: { zh: "← 返回工具", en: "← Back to tool" },
+  manualTitle: { zh: "WaveDrom 使用手册 · Analog Tools", en: "WaveDrom User Manual · Analog Tools" }
 };
 </script>
 <script src="./i18n.js"></script>
