@@ -1,41 +1,29 @@
-# Schematic Editor 升级计划（R1–R5）
+# Schematic Editor 1.0.1-beta 升级记录（R1–R5）
 
-状态：Draft 0.1 · 2026-11-19
+R1–R5 已纳入 1.0.0-beta；1.0.1-beta 增加 Options 的 `O` 快捷键，并完善 AI 弹窗的当前状态显示。文档更新于 2026-11-25。
+
 关联规格：[netlist-ir.md](netlist-ir.md)、[sheet-hierarchy.md](sheet-hierarchy.md)、[agent-transaction.md](agent-transaction.md)
 
-## 1. 结论
+## 1. 发布状态
 
-顺序固定为：
+R1 面板与反馈、R2 结构网表、R3 显示与图形、R4 层级与总线、R5 本机 Agent 协作已经随 Beta 发布。原理图编辑器提供结构化网表和符号分析，仿真由独立工具另行规划。
 
-**R1 面板容器与反馈 → R2 结构化网表 → R3 显示与图形 → R4 子图层级 → R5 Agent。**
+以下保留各阶段的交付目标和验收依据。当前发布提交、实现入口与后续开发要求见 [交接手册](handoff.md)。
 
-原理图编辑器提供结构化网表。仿真由独立工具另行规划。
+## 2. Beta 实现概览
 
-原则：
-
-1. 先做容器，再做内容。左侧栏、右侧栏、日志区是后面所有功能的落点；先拆一次 DOM，避免每期返工。
-2. 先做数据，再做消费。网表是右栏查看器、层级和 Agent 的公共底座。
-3. 关键路径优先，独立项做缓冲。R1→R2→R4→R5 是关键路径；R3 不在关键路径上，可以提前或延后，但不能插进 R4 的 schema 变更中间。
-4. 一期只改一次文档 schema。R3 加图形字段，R4 加项目/层级字段；不要在同一期里既改 schema 又做大 UI。
-
-## 2. 现状（代码事实）
-
-| 区域 | 现状 |
+| 区域 | 当前实现 |
 |---|---|
-| 左栏 | 符号模板选择 + `Add Instance` 组合框 + Property Editor；没有器件总览 |
-| `i` 键 | 进入放置模式并把左栏查询框选中；不是弹窗；支持边打字边补全、连续放置 |
-| 右栏 | 只有 `Symbolic Analysis`；默认折叠（`rightCollapsed: true`）；宽度 260–680 |
-| 网表 | 仅“复制选中对象为网表”，输出 subckt，端口为空，器件参数是 TODO |
-| 层级/图层 | 无。`SchematicContent` 是单张平面图；没有 sheet/port 概念 |
-| 字体/交叉 | 字体硬编码 Arial；跨线没有 hop/gap 选项，节点圆点只由连接关系决定 |
-| 图形 | 矩形、三角形已有：可放引脚、改宽高、四角拖拽；缺折线/多边形/圆/弧 |
-| 命令面 | `SchematicEditorHandle` 已有 `execute` / `transact` / `getContent` / `subscribe`，可作为 Agent 的落点 |
-| 文案 | `app/schematic/schematic-i18n.js` 是 631 行的 DOM 文本精确匹配字典 |
-| 构建 | Vite 产出带 hash 的 `assets/`；站点 `index.html` 手工引用 hash |
-
-结论：第 1、2、3 项原计划都需要改写成“基于现有能力做扩展”，不能当成从零开发。
+| 面板 | 左栏为 Library、Properties、Layers；右栏为 Hierarchy、Analysis、Netlist；状态栏可打开日志 |
+| 放置 | `I` 打开三栏 Add Instance，可预览及预设器件、图形和模板属性 |
+| 电气模型 | 子图与稳定端口、区分大小写的标签、同名连通、总线位展开、双格式结构网表与诊断 |
+| 图形与显示 | 六种 Library 无引脚图形、图层和对象显隐与层序、字体覆盖、跨线桥 |
+| 文案 | 源码按 i18n 键渲染；站点外壳使用 `editor-preferences.js`，默认简体中文并跟随系统主题 |
+| 构建 | 带内容哈希的 Vite 资源、独立 JointJS chunk、按需加载的本地 MathJax 单文件 |
 
 ## 3. 界面决策
+
+本节保留各阶段的界面设计依据，Beta 的实际操作以交接手册和使用手册为准。
 
 ### 3.1 左栏：tab 容器
 
@@ -83,7 +71,7 @@
 
 ### 3.5 工具栏与状态栏
 
-- `Options` 在 `Library` 前，`Help` 在工具栏末尾。工具栏保留 `Analysis` 和 `Netlist`。
+- `Options` 在 `Library` 前，`Help` 后是 `AI`。工具栏保留 `Analysis` 和 `Netlist`。
 - 状态栏保留操作提示和日志入口。Netlist 面板用文字显示生成状态和诊断计数。
 
 ## 4. 路线图
@@ -171,7 +159,7 @@
 验收：
 
 - 三级嵌套在两种格式下正确；子图修改反映到父图网表。
-- 导出 → 导入 → 结构与网表一致；旧单图 JSON 仍可打开。
+- 导出 → 导入 → 结构与网表一致；当前格式的单图 JSON 仍可独立打开。
 - 循环/自引用/缺失子图被拒绝并定位到对象。
 - 改名同步更新子图、父图 Symbol 和网表，保持端口 ID 与接线点。
 - 换边和删除保持父图导线几何原样，对不上引脚的线头留在原处，由设计者重新接线。换边保持网表端口顺序，顺序可在 Hierarchy 中单独调整。
@@ -221,13 +209,13 @@
 
 - 不做工艺层/掩膜层。
 - 不做字体文件上传/内嵌 webfont；只用系统字体栈。
-- 不做文字转路径；SVG 导出保留文本和 fallback。
+- SVG 导出保留普通文本和字体 fallback，TeX 公式使用 MathJax 生成的字形路径。
 - 不做图形组合/布尔运算/对齐分布（后续可加）。
 
 ### R4
 
 - 不做跨子图复制粘贴。
-- 不做子图实例的独立复制、替换定义、展平到父图。
+- 子图实例可复制为同一子图的新实例。替换定义和展平到父图仍在 Beta 范围之外。
 - 不做子图参数/实例覆盖。
 - 不做外部 subckt/SPICE 模型导入。
 - 不做 flatten into parent；网表也不做名字展平。
@@ -245,17 +233,16 @@
 
 ### 6.1 i18n
 
-- 新 UI 必须用 key（例如 `data-i18n="netlist.title"`），由统一的字典渲染；不要继续扩大 `app/schematic/schematic-i18n.js` 的精确文本匹配表。
-- 旧文案可以继续走兼容层；新增文案必须走新机制。
+- 新 UI 和日志文案使用源码中的 i18n 键和消息模板，随改动补齐中英文。
 - 器件名、网络名、用户输入不进翻译；单位、方向、诊断消息要翻译。
 - 诊断码（`MISSING_MODEL` 等）不翻译，消息模板翻译。
 
 ### 6.2 构建与发布
 
-- 源码改动在 `source/schematic-editor`，构建 `build:lib` + `build:web`，把 `apps/web/dist/assets` 同步到 `app/schematic/assets`，并更新 `app/schematic/index.html` 的 hash 引用。
-- 每次发布必须同步：`manual.html`、`schematic.css`、`schematic-i18n.js`、`THIRD_PARTY_LICENSES.txt`（如有新依赖）。
-- 发布前跑：typecheck、单测（当前 153 个测试文件）、浏览器冒烟、375px/深色/导出回归。
-- 先在本地把 `npm ci` 与构建跑通；源码版本为 0.1.3，站点登记为 0.1.1，两者暂不同步，重建前先对拍差异。
+1. 在源码仓库确认目标版本，按需执行 `npm ci`，运行 `npm run build:lib` 与 `npm run build:web`。
+2. 发布到站点时同步 `apps/web/dist/` 中实际引用的资源至 `app/schematic/`，更新入口的 JS、CSS、预加载路径和版本。核对 worker、本地 MathJax 和许可证。站点的 `index.html`、`editor-preferences.js`、`schematic.css` 与手册继续由站点维护。
+3. 检查类型、相关单测及 Chromium 回归。按发布范围覆盖 `/tools/` 路径、375 px、浅色与深色、手册、导入导出和公式按需加载。
+4. 如需交付发布包，核对 `tools/` 顶层、工具首页范围和资源引用。将源码版本、站点提交和生产部署分别记录。
 
 ### 6.3 文档 schema 与迁移
 
@@ -278,33 +265,34 @@
 
 ### 6.6 隐私与许可
 
-- 页面保持零网络请求；Agent 本地 MCP/桥只能由用户显式启动和连接。
+- 页面通过同源静态资源提供功能，工程数据保存在浏览器。Agent 本机回环连接器由用户显式启动和连接。
 - 不引入新的第三方 CDN；新增依赖必须本地化并附 LICENSE。
 - 不复制第三方代码、文档、样式或资源。
 
 ### 6.7 性能
 
-- 网表预览 debounce 200–500ms；大文档不在每次指针移动时重算。
+- 网表预览合并连续更新；大文档不在每次指针移动时重算。
+- 保持空白或纯文本场景零 MathJax 请求，保留 JointJS 独立分块。改动相关构建配置时核对库 chunk 依赖方向和跨版本哈希。
 - 层级树懒加载子图；循环检测在结构变更时做一次，不每次渲染都做。
 - 日志环形缓冲固定上限，避免长时间会话内存增长。
 
-## 7. 风险
+## 7. 历史风险与维护关注点
 
 | 风险 | 影响 | 缓解 |
 |---|---|---|
 | R4 schema 与层级网表 | 全计划最大单期，可能拖垮排期 | 先做“电阻分压子图”纵向切片；schema 先评审再写 UI |
 | 双仿真器语法差异 | SPICE/Spectre 逻辑分叉、测试翻倍 | 强制 IR + 纯 printer；先 SPICE 后 Spectre；golden 锁格式 |
-| i18n 精确匹配字典 | 新 UI 文案爆炸、漏翻 | R1 起改用 key；旧表只做兼容 |
+| i18n 漏翻 | 界面与日志中英文混杂 | 使用统一键和双语消息模板 |
 | 构建/发布链 | hash 引用、CSS 覆盖、手册不同步 | 写发布脚本 + 基线截图；每期只发一次 |
 | Agent 范围蔓延 | 做成聊天/自动化平台 | 只做 typed transaction + 审阅；不做站内 LLM |
 | 第三方来源污染 | 许可风险 | 提交评审检查来源；不复制外部项目代码/文档 |
 
-## 8. 开放问题
+## 8. 历史决策
 
-1. sky130 MOS 的显式 B 端是否需要提供可选的默认接地设置？R2 当前用占位网络并报告错误。
-2. 全局网策略：除 `0` 外，`VDD`/`VSS` 默认全局还是按项目声明？
-3. 结构网表的实例名前缀：SPICE 下 sky130 MOS 是 subckt，必须 `XM1`；UI 仍显示 `M1`，是否接受这个差异？
-4. 日志是否需要跨会话保留最近 100 条？当前定为仅会话内。
+- 显式 B 端悬空时使用占位网络并报告错误。
+- 工程的共享网络在 Hierarchy 的 Global nets 中声明。
+- SPICE 的 MOS 子电路调用加 `X` 前缀，UI 仍显示原位号。
+- 日志仅在会话内保留。
 
 ## 9. 发布批次
 
@@ -316,9 +304,9 @@
 | R4 | 5b | 三级层级双格式正确；项目包往返 |
 | R5 | 6b | 本机配对、修订号冲突检查和 Agent transaction 原子应用 |
 
-每批独立发布、独立回滚；不要把 R2 和 R4 合并发布。
+各阶段验收记录保留在交接手册，R1–R5 的站点交付统一纳入 1.0.0-beta。
 
-## 10. 代码落点（建议）
+## 10. 原计划的代码落点
 
 | 能力 | 主要落点 | 说明 |
 |---|---|---|
@@ -333,4 +321,4 @@
 | 子图层级 | `document/documentModel.ts`、`schematicDocumentCodec.ts`、`workspacePersistence.ts`、新增 `hierarchyController.ts` | 需要 project-scoped resolver；见 sheet-hierarchy 2.3 |
 | Agent | `src/schematic/agent/` 与 `tools/schematic-agent/` | 页面复用原理图模型和撤销历史；连接器在本机运行 |
 
-这张表是建议，不是硬性目录约束；实现时可以按实际依赖调整，但“IR 与 printer 分离”“层级 resolver 不全局”“Agent 不碰 DOM”这三条不能破。
+表中路径是原计划。查当前入口时使用 [交接手册的代码地图](handoff.md#5-关键代码地图) 和源码。

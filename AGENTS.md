@@ -47,7 +47,7 @@
 | 组件 | 版本 | 许可 | 位置 |
 |---|---|---|---|
 | WaveDrom | 3.8.0 | MIT © 2011-2026 Aliaksei Chapyzhenka | `app/wavedrom/vendor/` |
-| GmKing Schematic Editor | 0.1.1 | MIT © 2026 RarityBrown | `app/schematic/`（含 LICENSE 与 THIRD_PARTY_LICENSES.txt） |
+| GmKing Schematic Editor | 1.0.1-beta | MIT © 2026 RarityBrown | `app/schematic/`（含 LICENSE 与 THIRD_PARTY_LICENSES.txt） |
 | JointJS | 4.2.4 | MPL-2.0 | 已打包进 `app/schematic/assets/` |
 | MathJax | 4.1.3 | Apache-2.0 | `app/schematic/vendor/mathjax/` |
 
@@ -55,11 +55,18 @@
 
 ## Schematic Editor 内测文档格式
 
-- Schematic Editor 尚未开放使用，内测期间可直接调整文档格式，无需为旧文档提供兼容或迁移逻辑。修改格式时同步更新当前的读写、校验和测试。正式开放后重新评估兼容策略。
+- 1.0.1-beta 是当前发布基线。内测期间仅在需求确实需要时调整文档格式，无需为旧文档提供兼容或迁移逻辑。修改格式时同步更新当前的读写、校验和测试。正式开放前重新评估兼容策略。
+
+## Schematic Editor 后续维护
+
+- 接手前先读 [交接文档](docs/schematic-editor/handoff.md) 和源码仓库的 `AGENTS.md`，分别检查站点与源码仓库的 Git 状态，保留已有改动。
+- 以能完整解决当前需求的最小变更为准。沿用现有模块和入口，避免无关重构、格式化、依赖更新以及接口或 schema 变更。
+- 编辑器功能在独立源码仓库维护。站点任务可修改 `app/schematic/` 的页面、样式和使用手册。同步构建产物时保留站点外壳，并使用源码构建生成的资源。源码提交、站点同步、打包和推送按本次任务范围执行。
+- 先做与变更相关的验证并记录结果。影响共享行为、准备发布或用户要求整体验收时扩大回归范围。纯文档改动检查说明与源码是否一致，以及引用和命令是否有效。
 
 ## 工程约束
 
 - 无构建步骤：不引入打包器；本地预览用 `npm run dev`（`app/dev-server.js`）。
 - `dev-server.js`、`package.json`、`README.md` 不上传服务器。
-- 交付前必须在浏览器中实测：页面渲染、交互、深色模式、375px 移动端。
+- 涉及页面或发布资源的交付前必须在浏览器中实测：页面渲染、相关交互、深色模式、375px 移动端。
 - git 提交信息使用中文，概括改动要点；提交前 `git status` 确认无多余文件。

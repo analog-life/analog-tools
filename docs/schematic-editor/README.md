@@ -1,19 +1,17 @@
-# Schematic Editor 升级规格
+# Schematic Editor 1.0.1-beta 开发文档
 
-状态：Draft 0.1 · 2026-11-19
-
-本目录保存 Schematic Editor 的 R1–R5 开发计划与规格。当前实现和验收记录见交接文档。
+R1–R5 已纳入 1.0.1-beta。本版增加 Options 的 `O` 快捷键；AI 弹窗以分割线隔开状态区，并以“当前状态：”前缀显示人工编辑、等待配对、已连接、暂停或离线。后续开发从交接手册开始，再查阅相关专项规格和发布前的历史记录。
 
 ## 文档
 
 | 文件 | 内容 | 状态 |
 |---|---|---|
-| [handoff.md](handoff.md) | 当前代码、R1–R4 进度、构建与测试、已知问题及下一步 | Current |
-| [upgrade-plan.md](upgrade-plan.md) | 总体路线图、界面决策、验收标准、非目标、风险 | Draft |
-| [netlist-ir.md](netlist-ir.md) | 网表 IR、规范化、SPICE/Spectre printer、sky130 profile、诊断 | Draft |
-| [sheet-hierarchy.md](sheet-hierarchy.md) | 项目包 schema v2、子图/端口、导航、层级网表 | Draft |
-| [agent-transaction.md](agent-transaction.md) | R5 的 Snapshot / Transaction 协议、站内审阅和本地 MCP | Draft |
-| [phase0-baseline.md](phase0-baseline.md) | 构建/发布基线：环境、构建与测试结果、产物指纹 | Done |
+| [handoff.md](handoff.md) | 发布基线、源码入口、验证方法、后续 AI 开发要求 | 当前交接 |
+| [upgrade-plan.md](upgrade-plan.md) | R1–R5 的交付与验收、作用范围、站点发布流程 | Beta 记录 |
+| [netlist-ir.md](netlist-ir.md) | 网表 IR、规范化、SPICE/Spectre、工艺模型和诊断 | Beta 规格 |
+| [sheet-hierarchy.md](sheet-hierarchy.md) | 项目包 schema v2、子图与端口、导航、层级网表 | Beta 规格 |
+| [agent-transaction.md](agent-transaction.md) | Snapshot / Transaction 协议及本机回环连接器 | Beta 规格 |
+| [phase0-baseline.md](phase0-baseline.md) | 升级前的环境、构建、测试结果及产物指纹 | 历史记录 |
 
 建议阅读顺序：`handoff.md`（先了解代码现状）→ 本文件 → `upgrade-plan.md` → 按需要读三份专项规格。
 
@@ -27,8 +25,8 @@
 ## 范围
 
 - 源码：`source/schematic-editor/`（独立 git 仓库，跟踪上游 `KingsAnalog/GmKing-schematic-editor`，推送到 `analog-life` fork）。
-- 站点：`app/schematic/`（Vite 构建产物 + 站点自有的 `index.html`、`schematic.css`、`schematic-i18n.js`、`manual.html`）。
-- 本目录只做计划与规格，不参与部署；不要放进 `app/`。
+- 站点：`app/schematic/` 包含 Vite 构建产物，以及站点维护的 `index.html`、`schematic.css`、`editor-preferences.js`、`manual.html`。
+- 本目录是开发资料，用户手册随站点部署。
 
 ## 与当前代码的关系
 
@@ -39,8 +37,8 @@
 - 左侧栏投影：`schematicEditorUiProjection.ts`
 - 右栏与标签壳：`schematicTabShell.ts`
 - 布局与窄屏：`schematicLayoutController.ts`
-- 网表雏形：`selection/selectionNetlist.ts`（仅选中对象、端口为空、参数 TODO）
-- 站点文案：`app/schematic/schematic-i18n.js`（DOM 文本精确匹配）
+- 结构网表：`netlist/`；项目、端口和自动符号：`schematicProject.ts`、`schematicHierarchyPanel.ts`
+- 编辑器文案：`schematicI18n.ts`、`schematicUiText.ts`；站点默认语言与颜色模式：`app/schematic/editor-preferences.js`
 
 ## 独立实现与许可
 

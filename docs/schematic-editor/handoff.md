@@ -1,11 +1,8 @@
 # Schematic Editor 交接文档
 
-状态：R4 子图层级与总线已实现并通过回归 · 2026-11-22
-源码仓库：`source/schematic-editor/`（独立 git 仓库）
-已推送的验收基线：`e7b4824`（`origin/main`）。功能提交为 `65fcdaf`，后续提交 `e7b4824` 修正浏览器测试对属性标签换行的测量方式。
-源码提交 `1840475` 实现了 1B 图层归属模型，`432c4df` 实现了 1C 图层改派与按活动层放置，`904d0d4` 将文档栏剪贴板导入统一到文件导入流程。内测文档格式遵循仓库 `AGENTS.md`。
+当前发布基线为 **1.0.1-beta**。R1–R5 已纳入发布；本版增加 Options 的 `O` 快捷键，并完善 AI 弹窗当前状态显示。文档更新于 2026-11-25。
 
-这份文档面向后续接手的 Agent，目标是先建立正确的工作上下文，再开始改代码。**规格文档描述目标；本文档描述代码事实和当前进度。两者冲突时以代码和测试为准，并在完成变更后更新本文件。**
+本手册面向后续接手开发的 AI 和维护者。先结合任务阅读适用的仓库约束，再用对应版本的实现和测试核对行为。原计划或旧回归记录与当前版本不一致时，保留历史归属并更新受影响的说明。
 
 ---
 
@@ -13,16 +10,10 @@
 
 建议顺序：
 
-1. 本文件。
-2. [upgrade-plan.md](upgrade-plan.md)：R1–R5 的目标、验收与非目标。
-3. [netlist-ir.md](netlist-ir.md)、[sheet-hierarchy.md](sheet-hierarchy.md)、[agent-transaction.md](agent-transaction.md)：按任务选读。
-4. 源码入口：`source/schematic-editor/packages/schematic/src/schematic/editor.ts`。
-
-当前最重要的约束：
-
-- **不要恢复上一版自定义自由图形实现。** `shapeModel.ts`、`shapeRenderer.ts`、`shapeSvgRenderer.ts` 已删除，也不再使用 `annotation + shape:*` 表示图形。
-- 自由图形走 Library 的无引脚组件路径，包含 `rectangle`、`triangle`、`polyline`、`arc`、`circle` 和 `polygon`。
-- 不要直接改站点 `app/schematic/`。源码和站点发布是待人工同步的两个区域。
+1. [站点仓库 AGENTS.md](../../AGENTS.md) 和源码仓库的 `source/schematic-editor/AGENTS.md`。
+2. 本手册的发布基线和 [开发要求](#8-后续-ai-开发要求)。
+3. [升级记录](upgrade-plan.md) 和本次任务对应的专项规格。
+4. 按功能入口查代码和测试。从编辑器入口 `packages/schematic/src/schematic/editor.ts` 可追到各工具控制器。
 
 ---
 
@@ -32,8 +23,12 @@
 |---|---|---|
 | 升级规格/交接文档 | `docs/schematic-editor/` | 本文档所在目录，不参与部署 |
 | 源码 | `source/schematic-editor/` | 独立 git 仓库，origin 是 `analog-life/GmKing-schematic-editor` |
-| 站点现有发布 | `app/schematic/` | 当前仍是 0.1.1 构建产物；本次改动**尚未同步**到这里 |
-| 主站工程 | 仓库根目录 | 主站文档、部署脚本、发布包 |
+| 站点部署文件 | `app/schematic/` 和 `app/assets/css/manual.css` | 外层仓库维护的 Beta 构建资源、站点外壳及手册样式 |
+| 发布包 | `outputs/` | 本地部署产物，外层仓库忽略此目录 |
+
+- 当前源码标签 [`1.0.1-beta`](https://github.com/analog-life/GmKing-schematic-editor/tree/1.0.1-beta) 指向 `0d2d429`，发布分支为 `codex/release-1.0.0-beta`；本提交尚未合入源码仓库 `main`。上一版标签 `1.0.0-beta` 指向 `3f83781`，其发布分支已由 [PR #1](https://github.com/analog-life/GmKing-schematic-editor/pull/1) 合入 `main`，合并提交为 `0f30bb1`。
+- 1.0.1-beta 站点静态资源、站点外壳和中英文手册随本次外层仓库 `main` 提交更新。上一版站点提交为 [`09e0dbe`](https://github.com/analog-life/analog-tools/commit/09e0dbe8b7bce5ac67d49cf8410ae107a313039c)。生产服务器的部署状态应单独核实，本次仅更新代码与本地发布文件。
+- 本地发布包 `outputs/analog-tools-wavedrom-schematic-1.0.1-beta.zip` 含 WaveDrom、Schematic Editor 和两份手册，共 29 个文件。包内顶层为 `tools/`，解压位置是站点根目录。该包的首页仅列出这两个工具，外层仓库仍保留完整工具列表。
 
 源码仓库：
 
@@ -85,7 +80,7 @@ scripts/              浏览器 smoke 测试
 
 R1 浏览器回归覆盖 375、768、1080 px 下的 Library、`i` 浏览器、右栏拖拽和重载恢复。无效 JSON 导入可在错误筛选中定位，导出的电路 JSON 不包含日志。新增跨线与字体文案已接入 i18n 键。
 
-独立 Web 版的 Options 支持 English、简体中文，以及跟随系统、亮色和暗色。默认使用英文并跟随系统颜色，设置仅存于当前浏览器，同时应用于 Help 页面。运行 `npm run test:preferences` 可验证动态参数汉化、深色对比度、375 px 下的 Options、刷新恢复和网表一致性。
+Options 支持 English、简体中文，以及跟随系统、亮色和暗色。点击齿轮或按 `O` 打开；组合键、重复按键、输入法组合输入、输入控件和已有弹窗不会触发该快捷键。源码独立 Web 默认英文，Analog Tools 站点默认简体中文，两者默认跟随系统颜色。设置仅存于当前浏览器，并用于对应的 Help。运行 `npm run test:preferences` 可验证真实 `O` 键、动态参数汉化、深色对比度、375 px 下的 Options、刷新恢复和网表一致性。
 
 ### R2：结构化网表 —— 已通过本轮验收
 
@@ -198,13 +193,19 @@ R2 的 error 和 warning 均保留诊断，同时允许生成、复制和下载�
 - Pin 改名保留端口身份及接线；换边和删除保留父图导线坐标，失配线头留在原处。换边不影响网表顺序。
 - Pin 和 Net Label 严格区分大小写。同一张 Sheet 中同名有效标签电气相连。总线使用 `OUT<7:0>`，单个位使用 `OUT<3>`，SPICE 和 Spectre 按书写顺序展开。
 - `schematicProject.ts` 管理项目拓扑、派生符号和 v2 项目包。`schematicHierarchyPanel.ts` 管理交互。`netlist/project.ts` 生成 SPICE / Spectre 层级定义及诊断。
-- 源码基线为 `912caee`，已推送到源码仓库的 `origin/main`。可导入源码仓库 `scripts/fixtures/r4-dual-rc-test.atproj.json` 测试三级导航及两个父图实例的端口同步。
+- R4 功能提交为 `912caee`，已纳入 Beta。可导入源码仓库 `scripts/fixtures/r4-dual-rc-test.atproj.json` 测试三级导航及两个父图实例的端口同步。
 - `npm run test:r4` 验证 Pin 放置、方框接线、父图导线保留、删除与跨子图撤销、端口重排、两种网表、项目包文件和剪贴板往返、刷新恢复及 375 px 深色界面。单元测试覆盖三级调用及循环、缺失引用。
 - 库、Web 和 Obsidian 构建及类型检查通过。启用长测后，Schematic 1918 项通过，Obsidian 70 项通过。浏览器验证了总线单个位的分接、层次快捷键、折叠区和 375 px 深色模式下的长路径显示。
 
 ### R5：本机 Agent 协作
 
-- Web 编辑器支持一次性配对、短时令牌、结构化快照、试运行、语义事务及修订冲突检查。连接器通过 `npm run agent:connector` 在本机启动。详见 [Agent 事务规格](agent-transaction.md)。
+- Web 编辑器支持一次性配对、最长两小时的会话、结构化快照、试运行、语义事务及修订冲突检查。连接器通过 `npm run agent:connector` 在本机启动。详见 [Agent 事务规格](agent-transaction.md)。
+- 1.0.1-beta 的 AI 弹窗在状态区上方使用 `role="separator"` 的分割线，状态统一显示为“当前状态：人工编辑 / 等待 AI 配对 / AI 已连接 / 连接已暂停。/ 本机连接器离线”。文案由现有 `AgentSession.status` 驱动，每次 render 随等待、连接、暂停、离线和断开更新；非安全上下文仍优先显示 HTTPS/localhost 提示。`test:preferences` 覆盖人工编辑与离线，`test:r5` 覆盖真实配对后的已连接状态，发布包站点回归另覆盖等待配对与已连接。
+
+### Beta 交互与 Web 性能
+
+- 布线支持正交、45° 和自由角度，实时显示吸附点及预览。工具模式更新了指针提示、框选移动与复制、保线移动和子图实例复制。Add Instance 支持器件、图形及模板放置前的属性编辑。
+- Note 使用普通文本与 TeX，支持九点定位和公式导出。MathJax 4.1.3 以本地单文件按需加载。JointJS 4.2.4 从模块化入口构建为独立的内容哈希 chunk。参见 [MathJax 构建说明](../../app/schematic/vendor/mathjax/README.md)。
 
 ---
 
@@ -299,7 +300,28 @@ npm.cmd run build:web
 
 `npm test` 会先 `build:lib`，再跑 schematic 与 obsidian 测试。
 
-### R4 启动前的完整回归
+### Beta 验证入口
+
+根据改动选用现有测试。下表中的 Node 脚本在源码仓库运行，运行前先构建库和 Web。
+
+| 改动 | 优先检查 |
+|---|---|
+| 布线、移动、复制、存储 | `npm run test:interactions`、`npm run test:persistence`、`npm run test:placement` |
+| Add Instance 与属性 | `node scripts/instance-browser-smoke.mjs` |
+| 图形、图层和显示 | `npm run test:r3`、相关形状测试、`npm run test:r3:layers`、`npm run test:r3:display` |
+| 层级与网表 | `npm run test:r4`、`npm run test:r2` |
+| 本机协作 | `npm run test:r5` |
+| 注释、公式与 Web 分块 | `npm run test:note`、`npm run test:web-performance`、`node scripts/web-mathjax-compat-smoke.mjs` |
+
+### 1.0.1-beta 当前验收
+
+- 源码 `0d2d429` 已通过 `typecheck`、`npm test`、`test:preferences`、`test:r5`、`test:web-performance` 和 `build:obsidian`。Schematic 为 163 个测试文件通过、1 个跳过，1850 项通过、2 项跳过；Obsidian 为 9 个测试文件、70 项全部通过。Vite 仍有既有的大分块提示。
+- 当前站点资源为 `editor-DpbUoqQA.js`、`editor-DBBQ9ZwL.css`、`jointjs-CXOFuMno.js`、`analysis.worker-oidw_f6g.js` 和 `style-BOiV29gy.css`。JointJS 与分析 Worker 的哈希及内容未变，MathJax 按需加载与 JointJS 独立分块检查通过。
+- 发布包在真实 Chromium 中按 `/tools/schematic/` 路径验收，覆盖 `O` 快捷键、AI 人工编辑/等待配对/已连接状态、状态分割线、深色模式、375 px 下 AI 与 Options 弹窗边界，并检查双工具首页、WaveDrom 和两份手册的访问。控制台零错误、资源零 404。未执行生产服务器部署。
+
+归档并解压后曾用 Chromium 在 `/tools/` 下验证双工具首页、两个工具及手册、WaveDrom 波形、Schematic Editor 公式按需加载，以及 375 px 深色页面。以下各阶段的测试数量对应当时的提交。
+
+### R4 启动前的历史回归
 
 在 `e7b4824` 的功能代码上验证了库、Web 和 Obsidian 构建及工作区类型检查。启用 `RUN_SLOW_TESTS=1` 后，Schematic 167 个测试文件、1909 项通过，Obsidian 9 个测试文件、70 项通过。包含默认关闭的 RLC 符号分析和大图 SVG 性能测试。Vite 仍报告构建分块大小提醒。
 
@@ -387,13 +409,13 @@ npm.cmd run dev
 4. **CRLF**
    - `editor.ts` 和 `schematicEditorUiProjection.ts` 在工作区是 CRLF；git 提交时转 LF 会产生提示，不是错误。
 
-5. **站点未同步**
-   - `app/schematic/` 仍是旧版本；完成源码验收后另行构建、复制产物并更新站点版本/指纹。
-   - 不要把 `apps/web/dist` 直接提交进源码仓库。
+5. **站点外壳与构建资源分别维护**
+   - 后续站点发布时，按 [站点发布流程](upgrade-plan.md#62-构建与发布) 更新资源、入口引用及相关手册。保留站点页头、页脚、首选项和 Help 链接。
+   - 生成的 `apps/web/dist` 用于本地验证和发布准备，源码提交应保留可复现的输入。
 
-6. **规格与代码不一致**
+6. **保留已有能力**
    - R3 的 Library 图形已完成矩形、三角形、折线、弧形、圆形和多边形。
-   - R2 也已超出旧规格的 sky130-only 范围（增加了 GF180/IHP/Custom），验收时以当前产品和代码为准。
+   - 工艺预设覆盖 SKY130、GF180MCU、IHP SG13G2 和自定义工艺。网表改动需考虑预设模型与单器件覆盖。
 
 7. **逐对象状态依赖实际对象 ID**
    - 导线规范化为每个实际线段记录原导线 ID。新线段继承原导线的归属和显隐层序，网络标签按原物理导线和附着点重新绑定。保留物理节点身份的 junction 随几何变换迁移显隐和层序。
@@ -401,37 +423,17 @@ npm.cmd run dev
 
 ---
 
-## 8. 建议的下一步
+## 8. 后续 AI 开发要求
 
-1. 使用 `npm run test:r5` 验证本机配对、快照、事务写入及人工收回编辑权。
-2. 保留 `npm run test:r4` 作为层次编辑和项目包的基线。
-
----
+1. **先核对分支和范围。** 在外层仓库和源码仓库分别运行 `git status --short --branch`、查看 HEAD 和相关 diff。保留已有改动。比较 GitHub 时区分实时远端与本地缓存的跟踪引用。
+2. **做完整而最小的变更。** 从用户实际使用的入口定位问题，优先修改直接负责该行为的模块，复用已有命令、属性、序列化和渲染路径。避免顺手重构、批量格式化、升级依赖或改动无关界面。补测试用于现有覆盖无法抓住的回归。
+3. **保住共享行为。** 维护稳定引脚 ID、电气拓扑、撤销边界和宿主历史语义。画布、只读查看和 SVG/PNG 尽量共用视觉规则。保持 Web 纯静态、资源本地化、MathJax 按需加载与 JointJS chunk 缓存独立性。
+4. **按风险选择验证。** 局部修复先跑相关测试；改变共享模型、关键路径或准备发布时扩大回归。检查改动实际涉及的 Web、嵌入库和 Obsidian 宿主。纯文档更新核对链接、命令、路径和版本事实。
+5. **按任务交付。** 功能改动记录变更和验证结果，涉及使用方式时同步手册。站点同步、重打包、提交和推送按任务授权执行。需要提交时只暂存本次相关文件，提交信息用中文。
 
 ## 9. 交接检查清单
 
-接手后先跑：
-
-```powershell
-git -C source/schematic-editor status --short
-git -C source/schematic-editor log --oneline -3
-cd source/schematic-editor
-npm.cmd run typecheck
-npm.cmd test
-npm.cmd run test:r3
-npm.cmd run test:r3:polyline
-npm.cmd run test:r3:arc
-npm.cmd run test:r3:closed-shapes
-npm.cmd run test:r3:layers
-npm.cmd run test:placement
-```
-
-确认：
-
-- [ ] 工作区干净（或明确知道未提交改动属于谁）。
-- [ ] `test:r3` 能绘制矩形/三角形且无引线/文字。
-- [ ] `test:r3:polyline` 能绘制和编辑折线、独立切换首尾箭头，并在移动端完成绘制。
-- [ ] `test:r3:arc` 能按端点、端点、弧上点的顺序完成绘制，并验证编辑、重载和触屏放置。
-- [ ] `test:placement` 通过，单击不会重复放置。
-- [ ] `app/schematic/` 未被误改。
-- [ ] 新改动有中文 commit，并已推送 `origin/main`。
+- [ ] 已核对工作分支和已有改动，明确本次应改源码、站点还是文档。
+- [ ] 已通过实际入口验证改动，核对相关撤销、保存恢复或导出行为。
+- [ ] 按需求更新受影响的文档，并交代已通过的检查、未验证事项与具体原因。
+- [ ] 如有发布，核对标签、站点入口资源、浏览器测试和远端提交，单独记录生产部署是否已验证。

@@ -1,14 +1,16 @@
-# Phase 0 构建/发布基线
+# Phase 0 构建/发布基线（历史记录）
 
 状态：Done（基于源码 0.1.3 完成构建、单测、浏览器冒烟）· 2026-11-19
+
+本文记录升级前的环境和测量值。当前 1.0.1-beta 发布信息见 [交接文档](handoff.md)，当前发布步骤见 [升级记录](upgrade-plan.md#62-构建与发布)。
 
 关联：[upgrade-plan.md](upgrade-plan.md)（6.2 构建与发布）
 
 ## 1. 结论
 
-源码已从 0.1.1 更新到 0.1.3（`ddbfb69`），并在当前机器完成首次构建、类型检查、单元测试与浏览器冒烟。站点 `app/schematic/` 仍登记 0.1.1，**未替换**；等 R1 发布时再同步 `assets/` 与 `index.html` 的 hash 引用。
+Phase 0 将源码从 0.1.1 更新到 0.1.3（`ddbfb69`），并完成首次构建、类型检查、单元测试和浏览器冒烟。测量时站点 `app/schematic/` 仍使用 0.1.1 资源。
 
-当前 0.1.3 构建产物与线上 0.1.1 产物的差异：主 JS +64,312 B、公式编辑器 −4,418 B、编辑器 CSS +316 B、analysis worker −2 B；差异来自 0.1.2/0.1.3 的上游改动，R1 发布前需逐项对拍。
+当时 0.1.3 构建产物与 0.1.1 站点产物的差异为主 JS +64,312 B、公式编辑器 −4,418 B、编辑器 CSS +316 B、analysis worker −2 B。差异来自 0.1.2/0.1.3 的上游改动。
 
 ## 2. 环境
 
@@ -103,7 +105,7 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 4. **npm 12 的 install-scripts 策略**：esbuild 的 postinstall 被阻止，但 `@esbuild/win32-x64` 可选依赖提供了二进制。为可复现，建议 CI 固定 npm 10/11，或在 npm 12 下显式批准 `esbuild` 的安装脚本。
 5. **站点 `index.html` 不要用构建产物覆盖**：`dist/index.html` 是 Vite 默认壳（4,153 B），站点使用的是带页头/页脚/主题脚本的自定义 `index.html`（6,001 B）。发布时只同步 `assets/` 并更新其中的 hash 引用。
 
-## 7. 发布前仍需
+## 7. 当时拟定的发布步骤
 
 - 用构建产物替换 `app/schematic/assets/`，更新 `app/schematic/index.html` 中 `index-*.js` 与 `index-*.css` 的引用。
 - 同步 `manual.html`、`schematic.css`、`schematic-i18n.js`（R1 起新 UI 走 key，不再扩精确匹配表）。
@@ -111,8 +113,8 @@ $env:PATH = "C:\Users\hydro\npm-bootstrap\bin;<DSH node bin>;$env:PATH"
 - 记录“构建后清单指纹”，与本文件第 3 节对比。
 - 每次发布更新 `outputs/` 压缩包。
 
-## 8. 待决
+## 8. 当时的仓库状态
 
 - 远程仓库已建立：`analog-tools` 存放主站代码，`GmKing-schematic-editor` 存放源码 fork；remote 配置与推送状态以 git 为准。
-- 源码已更新到 0.1.3，站点仍登记 0.1.1；R1 以 0.1.3 为基线开发，站点在升级完成后同步。
+- R1 从 0.1.3 开始开发。源码与站点于 1.0.0-beta 同步，发布提交见交接文档。
 - 推送已改用 GitHub noreply 地址（`51410082+analog-life@users.noreply.github.com`），主站与源码仓库均已配置，不再使用个人邮箱。

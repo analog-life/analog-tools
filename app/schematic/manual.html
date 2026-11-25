@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Schematic Editor 使用手册 · Analog Tools</title>
-<meta name="description" content="Schematic Editor 1.0.0-beta 使用手册，涵盖布线、图形、层次与总线、SPICE 和 Spectre 网表、符号分析、导出及本机 AI 协作。">
+<meta name="description" content="Schematic Editor 1.0.1-beta 使用手册，涵盖布线、图形、层次与总线、SPICE 和 Spectre 网表、符号分析、导出及本机 AI 协作。">
 <script src="./editor-preferences.js"></script>
 <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -45,7 +45,7 @@
   <article lang="zh-CN" data-manual-language="zh">
     <header class="manual-hero">
       <h1>Schematic Editor 使用手册</h1>
-      <p>适用于 1.0.0-beta。先跟着示例画一张 RC 低通，再查阅进入子图、生成网表和导出图片的具体操作。</p>
+      <p>适用于 1.0.1-beta。先跟着示例画一张 RC 低通，再查阅进入子图、生成网表和导出图片的具体操作。</p>
     </header>
     <nav class="manual-toc" aria-label="目录">
       <a href="#draw">快速入门</a><a href="#interface">界面</a><a href="#parts">元件和图形</a>
@@ -106,6 +106,7 @@
           <tr><td><kbd>Ctrl+R</kbd> / <kbd>Shift+R</kbd></td><td>分别执行 Mirror X / Mirror Y。</td></tr>
           <tr><td><kbd>Delete</kbd> / <kbd>Shift+Delete</kbd></td><td>删除 / 切换器件或导线的临时删除状态。空选区时可拾取目标，临时删除可再次切换恢复。</td></tr>
           <tr><td><kbd>U</kbd> / <kbd>Shift+U</kbd></td><td>撤销 / 重做。也可使用 <kbd>Ctrl/Cmd+Z</kbd> 与 <kbd>Ctrl/Cmd+Shift+Z</kbd>。</td></tr>
+          <tr><td><kbd>O</kbd></td><td>打开选项。</td></tr>
           <tr><td><kbd>F</kbd> / <kbd>Esc</kbd></td><td>适合视图 / 退出当前工具或关闭弹窗。</td></tr>
         </tbody>
       </table>
@@ -153,7 +154,7 @@
     <section class="manual-section" id="options">
       <h2>选项与显示习惯</h2>
       <ul>
-        <li><strong>Language</strong>切换英文和简体中文。<strong>颜色模式</strong>可跟随系统或固定为亮色、暗色。偏好保存在本浏览器。</li>
+        <li>按 <kbd>O</kbd> 或点击齿轮打开选项。<strong>Language</strong>切换英文和简体中文。<strong>颜色模式</strong>可跟随系统或固定为亮色、暗色。偏好保存在本浏览器。</li>
         <li><strong>默认文字字体</strong>应用于本图纸的注释和网络标签。在单个对象的属性中可覆盖字体，或恢复文档默认值。</li>
         <li><strong>工艺</strong>决定网表默认模型。<strong>符号模板</strong>调整器件符号的绘制样式。</li>
         <li><strong>导线交叉</strong>可显示直线交叉或跨线桥。<strong>导线角度</strong>可选正交、45 度或自由。45 度模式允许水平、垂直和 45° 线段。</li>
@@ -162,15 +163,15 @@
 
     <section class="manual-section" id="agent">
       <h2>本机 AI 协作</h2>
-      <p>从 <a href="https://github.com/analog-life/GmKing-schematic-editor/tree/1.0.0-beta" target="_blank" rel="noopener">1.0.0-beta 源码</a>目录运行 <code>npm run agent:connector</code>。在编辑器打开 <strong>AI → 交给 AI 修改 → 复制文本</strong>，把提示词交给可调用本机连接器的 Agent。若浏览器询问本地网络权限，允许当前页面访问本机连接器。配对码两分钟内可使用一次，连接后会话最长两小时。</p>
-      <p>Agent 通过本机连接器读取结构化图纸和修订号。一次提交对应一次可撤销事务。手工修改后，基于旧修订号的写入会被拒绝，Agent 需要重新读取。绿色提示表示已连接，琥珀色提示表示暂停或离线。使用暂停、取消连接或收回编辑权管理会话。网站服务器不接收图纸。</p>
+      <p>从 <a href="https://github.com/analog-life/GmKing-schematic-editor/tree/1.0.1-beta" target="_blank" rel="noopener">1.0.1-beta 源码</a>目录运行 <code>npm run agent:connector</code>。在编辑器打开 <strong>AI → 交给 AI 修改 → 复制文本</strong>，把提示词交给可调用本机连接器的 Agent。若浏览器询问本地网络权限，允许当前页面访问本机连接器。配对码两分钟内可使用一次，连接后会话最长两小时。</p>
+      <p>AI 弹窗的状态区上方有分割线，“当前状态：”后的文案会随人工编辑、等待配对、已连接、暂停和离线状态更新。Agent 通过本机连接器读取结构化图纸和修订号。一次提交对应一次可撤销事务。手工修改后，基于旧修订号的写入会被拒绝，Agent 需要重新读取。绿色提示表示已连接，琥珀色提示表示暂停或离线。使用暂停、取消连接或收回编辑权管理会话。网站服务器不接收图纸。</p>
     </section>
   </article>
 
   <article lang="en" data-manual-language="en">
     <header class="manual-hero">
       <h1>Schematic Editor Help</h1>
-      <p>For 1.0.0-beta. Draw an RC low-pass circuit, then use this guide to wire buses, organize sheets, and export your work.</p>
+      <p>For 1.0.1-beta. Draw an RC low-pass circuit, then use this guide to wire buses, organize sheets, and export your work.</p>
     </header>
     <nav class="manual-toc" aria-label="Contents">
       <a href="#en-draw">Quick start</a><a href="#en-interface">Workspace</a><a href="#en-parts">Parts and shapes</a>
@@ -226,6 +227,7 @@
           <tr><td><kbd>Ctrl+R</kbd> / <kbd>Shift+R</kbd></td><td>Mirror X / Mirror Y.</td></tr>
           <tr><td><kbd>Delete</kbd> / <kbd>Shift+Delete</kbd></td><td>Delete / Toggle temporary deletion for components or wires.</td></tr>
           <tr><td><kbd>U</kbd> / <kbd>Shift+U</kbd></td><td>Undo / Redo. The usual <kbd>Ctrl/Cmd+Z</kbd> shortcuts also work.</td></tr>
+          <tr><td><kbd>O</kbd></td><td>Open Options.</td></tr>
           <tr><td><kbd>F</kbd> / <kbd>Esc</kbd></td><td>Fit the drawing / Exit the tool or close a dialog.</td></tr>
         </tbody>
       </table>
@@ -272,14 +274,14 @@
 
     <section class="manual-section" id="en-options">
       <h2>Options</h2>
-      <p><strong>Language</strong> switches between English and Simplified Chinese. <strong>Color mode</strong> follows the system or uses Light or Dark. Both preferences stay in this browser.</p>
+      <p>Press <kbd>O</kbd> or use the gear to open Options. <strong>Language</strong> switches between English and Simplified Chinese. <strong>Color mode</strong> follows the system or uses Light or Dark. Both preferences stay in this browser.</p>
       <p>Set a document's default text font for notes and labels, override it on individual objects in Properties, choose the process and symbol template, and choose Plain or Hop for unconnected wire crossings. <strong>Wire angle</strong> offers Orthogonal, 45 Degree and Free routing.</p>
     </section>
 
     <section class="manual-section" id="en-agent">
       <h2>Local AI collaboration</h2>
-      <p>Run <code>npm run agent:connector</code> in the <a href="https://github.com/analog-life/GmKing-schematic-editor/tree/1.0.0-beta" target="_blank" rel="noopener">1.0.0-beta source</a> directory. Choose <strong>AI → Hand off to AI → Copy text</strong> and give the prompt to an agent that can use the local connector. Permit local network access if your browser requests it. A pairing code works once within two minutes. A paired session lasts up to two hours.</p>
-      <p>The local connector provides a structured snapshot and a revision number. Each accepted transaction creates an Undo entry. Manual edits advance the revision and stale AI submissions are rejected. The green indicator shows a connection and amber shows suspension or an offline connector. Use Suspend, Disconnect or Reclaim editing to control the session. The website server receives no schematic data.</p>
+      <p>Run <code>npm run agent:connector</code> in the <a href="https://github.com/analog-life/GmKing-schematic-editor/tree/1.0.1-beta" target="_blank" rel="noopener">1.0.1-beta source</a> directory. Choose <strong>AI → Hand off to AI → Copy text</strong> and give the prompt to an agent that can use the local connector. Permit local network access if your browser requests it. A pairing code works once within two minutes. A paired session lasts up to two hours.</p>
+      <p>A divider separates the AI dialog's status area. The text after <strong>Current status:</strong> follows manual editing, pairing, connection, suspension, and offline states. The local connector provides a structured snapshot and a revision number. Each accepted transaction creates an Undo entry. Manual edits advance the revision and stale AI submissions are rejected. The green indicator shows a connection and amber shows suspension or an offline connector. Use Suspend, Disconnect or Reclaim editing to control the session. The website server receives no schematic data.</p>
     </section>
   </article>
 </main>

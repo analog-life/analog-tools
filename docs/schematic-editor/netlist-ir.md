@@ -1,6 +1,6 @@
 # 结构化网表与网表 IR
 
-状态：Draft 0.1 · 2026-11-19
+适用版本为 1.0.1-beta。模型选项以源码的 `netlist/profiles.ts` 为准。
 关联：[upgrade-plan.md](upgrade-plan.md)（R2）、[sheet-hierarchy.md](sheet-hierarchy.md)（R4）、[agent-transaction.md](agent-transaction.md)（R5）
 
 ## 1. 目的与边界
@@ -113,12 +113,12 @@ IR 中不出现：`format`、`include`、`analysis`、`x/y`、`color`、`selecte
 
 | 原理图类型 | SPICE | Spectre | sky130 | 说明 |
 |---|---|---|---|---|
-| R / C / L | 是 | 是 | 理想 | 用原生 `R/C/L`；物理模型后续 |
+| R / C / L | 是 | 是 | 可选模型 | 默认用原生 `R/C/L`，可按器件指定模型 |
 | 独立电压源 V | 是 | 是 | 理想 | DC / SIN / PULSE / EXP / PWL；见 5.2 |
 | 独立电流源 I | 是 | 是 | 理想 | 同上 |
 | NMOS / PMOS | 是 | 是 | 是 | 4 端；`w/l/m/nf`；B 必须连接 |
 | 二极管 D | 后续 | 后续 | 后续 | v1 报 `UNSUPPORTED_DEVICE` |
-| NPN / PNP | 后续 | 后续 | 后续 | v1 报 `UNSUPPORTED_DEVICE` |
+| NPN / PNP | 是 | 是 | 是 | 使用工艺默认模型或单器件覆盖 |
 | 开关 / SPNT / 传输门 | 否 | 否 | 否 | 诊断 |
 | 逻辑门 / DFF / 缓冲器 | 否 | 否 | 否 | 诊断；不映射标准单元 |
 | ADC / DAC / 比较器 / 行为块 | 否 | 否 | 否 | 诊断 |
@@ -164,9 +164,9 @@ MOS 的尺寸参数存放在 `ComponentInstance.values`，使用固定键名：
 - 符号视图（`variantId`）只影响画法，不影响网表；网表按引脚角色取值，不按变体名。
 - 输出规则：`w`/`l` 必须输出；`m`/`nf` 仅在用户显式设置且不是默认 `1` 时输出，避免每行都带默认值。
 
-## 6. sky130 profile
+## 6. 工艺预设与 SKY130 示例
 
-v1 只交付 `sky130` 一个 process；`abstract`、`ihp-sg13g2`、`gf180mcu` 只留接口，不实现。
+Beta 支持 SKY130、GF180MCU、IHP SG13G2 和自定义工艺。以下示例展示 SKY130 MOS 模型的映射信息，实际预设字段以源码为准。
 
 ```jsonc
 {
@@ -303,9 +303,7 @@ R1 只做壳，R2 填满：
 - 语法：检查 SPICE 和 Spectre 的结构网表是否符合各自方言。R2 验收可使用离线语法检查和 golden 对拍，无需安装仿真器、加载目标 PDK 或运行仿真。
 - 性能：1000 个器件的文档，网表生成 < 500ms（开发机），UI 不卡顿。
 
-## 11. 开放问题
+## 11. Beta 维护入口
 
-1. `vdd` 符号的默认网络名是 `VDD` 还是取标签？多个 `vdd` 是否自动并网？
-2. sky130 的显式 B 端是否需要提供可选的默认接地设置？当前悬空时分配占位网络并报告错误。
-3. Spectre 的 subckt 实例名是否保留 `M1`，还是也加 `X`？当前按“保留原 ref”。
-4. 物理 R/C 映射是否进入 R2.5，还是等 v2？
+- 单图网表由 `netlist/build.ts` 和 `netlist/print.ts` 生成，层级项目由 `netlist/project.ts` 组合子图定义和端口映射。
+- 改动模型或 printer 时补跑 `npm run test:r2` 和相关单测。涉及层级和总线时同时运行 `npm run test:r4`。

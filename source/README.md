@@ -1,12 +1,13 @@
 # source —— 开源源码工作区
 
-本目录下的两个子目录是**独立的 Git 仓库**，分别对应网站上两个小工具的上游源码。
-根仓库通过 `.gitignore` 忽略它们，只保留本说明文件，避免嵌套仓库被误提交成 submodule。
+本目录存放各工具源码。其中 `wavedrom/` 和 `schematic-editor/` 两个子目录是**独立的 Git 仓库**，分别对应网站上两个小工具的上游源码。
+根仓库通过 `.gitignore` 忽略各源码目录，只保留本说明文件，避免嵌套仓库被误提交成 submodule。
 
-| 目录 | 上游仓库 | 当前分支 | 当前版本 |
+| 目录 | 上游仓库 | 主分支 | 版本基线 |
 |---|---|---|---|
 | `wavedrom/` | <https://github.com/wavedrom/wavedrom> | `trunk` | 3.8.0（`5f44f7d`） |
-| `schematic-editor/` | <https://github.com/KingsAnalog/GmKing-schematic-editor> | `main` | 0.1.3（`ddbfb69`） |
+| `schematic-editor/` | <https://github.com/KingsAnalog/GmKing-schematic-editor> | `main` | `1.0.1-beta`（`0d2d429`，发布分支与标签；是否合入 `main` 见[交接手册](../docs/schematic-editor/handoff.md)） |
+| `s-parameter-viewer/` | 本地新项目（尚未初始化 Git 或设置远端） | — | 初始目录骨架 |
 
 ## 已完成的初始化
 
@@ -16,7 +17,7 @@
 - `origin`：指向 `analog-life` 账号下的 fork 地址，作为后续推送目标：
   - `https://github.com/analog-life/wavedrom.git`
   - `https://github.com/analog-life/GmKing-schematic-editor.git`
-- `schematic-editor` 的分支已跟踪 `origin/main`，可直接推送；上游更新仍从 `upstream` 拉取。
+- 源码 fork 的默认分支为 `main`。本地可能位于发布分支或功能分支，操作前用 `git status --short --branch` 确认实际分支及跟踪关系。上游更新仍从 `upstream` 获取。
 - 本地提交身份已设置为 `analog-life <51410082+analog-life@users.noreply.github.com>`，可在各仓库内按需修改。
 - `remote.pushDefault` 已设为 `origin`。
 
@@ -40,7 +41,7 @@ git -C source/schematic-editor remote set-url origin https://github.com/<你的�
 
 ```bash
 git -C source/wavedrom status
-git -C source/wavedrom add .
+git -C source/wavedrom add -- path/to/changed-file
 git -C source/wavedrom commit -m "说明本次修改"
 
 # wavedrom 默认分支是 trunk
@@ -49,11 +50,11 @@ git -C source/wavedrom push -u origin trunk
 
 ```bash
 git -C source/schematic-editor status
-git -C source/schematic-editor add .
+git -C source/schematic-editor add -- path/to/changed-file
 git -C source/schematic-editor commit -m "说明本次修改"
 
-# schematic-editor 默认分支是 main
-git -C source/schematic-editor push -u origin main
+# 核对当前分支和目标分支后再推送
+git -C source/schematic-editor push -u origin HEAD
 ```
 
 首次推送会要求 GitHub 认证。HTTPS 方式可使用 Git Credential Manager 或 Personal Access Token；
@@ -71,9 +72,8 @@ git -C source/schematic-editor fetch upstream
 git -C source/schematic-editor merge upstream/main
 ```
 
-合并后重新构建、验证，再提交并推送自己的 fork。
+有同步上游的任务时，先查看上游改动与本仓库的差异，再在目标分支上合并、构建和验证。
 
 ## 与网站部署的关系
 
-`source/` 只用于维护源码，不参与 `app/` 的部署。修改源码后，需要重新构建/整理产物并更新
-`app/` 中对应工具的文件，再把新的发布包放入 `outputs/`。
+`source/` 用于维护源码。站点发布时，从目标版本构建并更新 `app/` 中相应工具的静态资源。需要发布包时再写入 `outputs/`。Schematic Editor 的版本对应与维护要求见 [交接手册](../docs/schematic-editor/handoff.md)。
